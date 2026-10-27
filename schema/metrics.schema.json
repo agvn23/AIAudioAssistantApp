@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/audio-metrics.schema.json",
+  "title": "AudioAnalysisResult",
+  "description": "Output of the analysis engine for one uploaded track. Measured values only; the LLM turns these into advice.",
+  "type": "object",
+  "required": ["schema_version", "file", "loudness", "dynamics", "tempo", "key", "spectrum", "stereo"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1" },
+
+    "context": {
+      "description": "User-supplied context, passed to the LLM alongside the measurements.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "genre": { "type": "string" },
+        "target_platform": {
+          "type": "string",
+          "enum": ["spotify", "apple_music", "youtube", "club", "broadcast", "other"]
+        },
+        "stage": { "type": "string", "enum": ["demo", "mix", "master"] }
+      }
+    },
+
+    "file": {
+      "type": "object",
+      "required": ["name", "duration_sec", "sample_rate_hz", "channels"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "format": { "type": "string", "examples": ["wav", "mp3", "flac"] },
+        "duration_sec": { "type": "number", "exclusiveMinimum": 0 },
+        "sample_rate_hz": { "type": "integer", "minimum": 8000 },
+        "bit_depth": { "type": ["integer", "null"] },
+        "channels": { "type": "integer", "minimum": 1, "maximum": 2 }
+      }
+    },
+
+    "loudness": {
+      "description": "ITU-R BS.1770 / EBU R128 measurements.",
+      "type": "object",
+      "required": ["integrated_lufs", "true_peak_dbtp", "loudness_range_lu"],
+      "additionalProperties": false,
+      "properties": {
+        "integrated_lufs": { "type": "number" },
+        "short_term_max_lufs": { "type": "number" },
+        "momentary_max_lufs": { "type": "number" },
+        "loudness_range_lu": { "type": "number", "minimum": 0 },
+        "true_peak_dbtp": { "type": "number" },
+        "sample_peak_dbfs": { "type": "number" },
+        "clipped_samples": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "dynamics": {
+      "type": "object",
+      "required": ["rms_dbfs", "crest_factor_db"],
+      "additionalProperties": false,
+      "properties": {
+        "rms_dbfs": { "type": "number" },
+        "crest_factor_db": { "type": "number" },
+        "dynamic_range_db": { "type": "number", "minimum": 0 }
+      }
+    },
+
+    "tempo": {
+      "type": "object",
+      "required": ["bpm", "confidence"],
+      "additionalProperties": false,
+      "properties": {
+        "bpm": { "type": ["number", "null"], "minimum": 20, "maximum": 300 },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "alternative_bpms": {
+          "description": "Half/double-time candidates.",
+          "type": "array",
+          "items": { "type": "number" }
+        },
+        "variable_tempo": { "type": "boolean" }
+      }
+    },
+
+    "key": {
+      "description": "A suggestion with confidence, not a fact.",
+      "type": "object",
+      "required": ["tonic", "mode", "confidence"],
+      "additionalProperties": false,
+      "properties": {
+        "tonic": {
+          "type": ["string", "null"],
+          "enum": ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B", null]
+        },
+        "mode": { "type": ["string", "null"], "enum": ["major", "minor", null] },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "alternatives": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["tonic", "mode", "confidence"],
+            "properties": {
+              "tonic": { "type": "string" },
+              "mode": { "type": "string", "enum": ["major", "minor"] },
+              "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        }
+      }
+    },
+
+    "spectrum": {
+      "type": "object",
+      "required": ["bands"],
+      "additionalProperties": false,
+      "properties": {
+        "bands": {
+          "description": "Energy per octave in each band, in dB, relative to the average across bands. Pink noise reads 0 dB in every band; real music usually falls off towards the top, so compare against genre reference curves rather than expecting 0.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["name", "low_hz", "high_hz", "relative_db"],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "examples": ["sub", "bass", "low_mid", "mid", "high_mid", "high", "air"]
+              },
+              "low_hz": { "type": "number", "minimum": 0 },
+              "high_hz": { "type": "number", "exclusiveMinimum": 0 },
+              "relative_db": { "type": "number" }
+            }
+          }
+        },
+        "spectral_centroid_hz": { "type": "number", "minimum": 0 },
+        "tilt_db_per_octave": { "type": "number" }
+      }
+    },
+
+    "stereo": {
+      "type": "object",
+      "required": ["phase_correlation", "width"],
+      "additionalProperties": false,
+      "properties": {
+        "phase_correlation": { "type": "number", "minimum": -1, "maximum": 1 },
+        "width": { "type": "number", "minimum": 0, "maximum": 1 },
+        "side_to_mid_db": { "type": "number" },
+        "mono_compatible": { "type": "boolean" },
+        "is_mono": { "type": "boolean" }
+      }
+    },
+
+    "warnings": {
+      "description": "Analysis problems the LLM and UI should know about (e.g. very short file, low key confidence).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "message"],
+        "additionalProperties": false,
+        "properties": {
+          "code": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  }
+}
