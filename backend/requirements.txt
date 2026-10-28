@@ -3,3 +3,9 @@ scipy
 essentia
 fastapi
 uvicorn[standard]
+sqlalchemy
+pydantic-settings
+pyjwt
+pwdlib[argon2]
+python-multipart
+email-validator

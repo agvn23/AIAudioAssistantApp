@@ -19,6 +19,9 @@ A running log of project decisions. Add new entries at the bottom of the table w
 | 2026-10-27 | `dynamic_range_db` is an approximation of the DR-meter idea: per channel, second-highest 3 s block peak vs RMS of the loudest 20% of blocks | Not a certified DR14 reading; label it as approximate in the UI |
 | 2026-10-27 | Stereo `width` = share of energy in the side signal (0 mono, 0.5 unrelated channels, 1 inverted); `mono_compatible` = average correlation above -0.1 | Simple definitions; revisit if they disagree with a reference meter |
 | 2026-10-27 | Spectrum, stereo and dynamics use the first 600 s decoded at 44.1 kHz; tempo and key the first 240 s | A warning is added to the result when a file is truncated |
+| 2026-10-27 | CRUD scope confirmed: Track (title, genre, target platform, notes, tags) with full CRUD; Analysis (one per uploaded version, deleted with its track); user accounts with token auth | Accounts and tokens matter for the bootcamp. Detail in `docs/API.md` |
+| 2026-10-27 | *Proposed:* email + password, Argon2 hashing, short-lived JWT bearer tokens; refresh tokens as a stretch | Change if the bootcamp prescribes a different auth approach |
+| 2026-10-27 | *Proposed:* SQLAlchemy 2.0 + Pydantic v2 on SQLite, Alembic migrations once the models settle; uploaded audio is a temporary file deleted after analysis, only metrics JSON is stored | Move to Postgres via `DATABASE_URL` only if needed |
 
 ## Design principles
 
@@ -31,6 +34,5 @@ A running log of project decisions. Add new entries at the bottom of the table w
 
 - Is essentia accurate enough for BPM and key on real tracks, and does `edma` or `bgate` suit the genres you work in? First track: BPM 123.7 vs 124, key correct. Test 5-10 more with known values, including a half-time one, and log the results here.
 - Do the spectrum, stereo and DR values agree with a reference meter or plugin you trust? Spot-check a few tracks.
-- CRUD scope (the bootcamp emphasizes CRUD): proposed entities are Track (title, genre, target platform, notes, tags) and Analysis (one per uploaded version), plus optional users/auth. Confirm before building the API.
 - Database: SQLite to start; move to Postgres only if needed.
 - File retention policy and upload size limits.
