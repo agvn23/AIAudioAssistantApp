@@ -36,3 +36,11 @@ A running log of project decisions. Add new entries at the bottom of the table w
 - Do the spectrum, stereo and DR values agree with a reference meter or plugin you trust? Spot-check a few tracks.
 - Database: SQLite to start; move to Postgres only if needed.
 - File retention policy and upload size limits.
+
+## Extra
+
+Tags: API.md has no /tags endpoints, so tags are managed through tracks. They are created on first use and replaced as a whole set by PATCH. A tag nobody uses any more is deleted. I can add GET /tags if the UI needs a tag picker.
+Tag names: lower-cased, whitespace collapsed, de-duplicated, with limits of 30 characters and 10 tags per track. The ?tag= filter is normalized the same way.
+List response: GET /tracks returns {items, total, limit, offset}, newest first. limit is 1–100 and defaults to 20. q searches title and notes case-insensitively and treats % and _ as literal characters.
+PATCH: only the fields you send change. null clears genre, target platform and notes, but title and tags can’t be null. A tags-only change still updates updated_at.
+GET /tracks/{id}: it doesn’t include analyses yet. That comes in slice 3, when the Analysis model exists.
