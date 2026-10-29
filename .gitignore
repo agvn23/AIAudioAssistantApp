@@ -46,3 +46,11 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 *.egg-info/
+
+# Audio stays out of git
+samples/
+*.wav
+*.mp3
+*.flac
+*.aiff
+*.m4a

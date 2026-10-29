@@ -50,9 +50,8 @@ docs/DECISIONS.md  decision log
 
 ## Current slice (update as you go)
 Week 1 (analysis engine) is complete: `analysis/metrics.py` (`analyze_file`) assembles the full metrics JSON and the CLI prints it. First real-track essentia check: BPM 123.7 vs actual 124, key matched; more tracks still to test, and loudness/DR/spectrum should be spot-checked against a meter you trust.
-Week 2, slice 1 (config, database, users, auth) is written in `backend/app/` with tests in `tests/test_auth.py` and `tests/test_tokens.py`.
-- Not yet run: `test_auth.py` needs the new requirements installed (`pip install -r requirements-dev.txt`). Only the token tests were run where it was written.
-- Next: get slice 1 green and committed on a feature branch, then slice 2 (tracks and tags CRUD) from `docs/API.md`.
+Week 2, slice 1 (config, database, users, auth) is done and verified: pytest green, `/docs` and `/users/me` work. Code is in `backend/app/`, tests in `tests/test_auth.py` and `tests/test_tokens.py`.
+- Next: slice 2 (Track and Tag CRUD with the ownership rules) from `docs/API.md`, on a branch `feature/tracks` created from `dev`.
 
 ## Plan
 1. Analysis engine + metrics JSON (this slice)
