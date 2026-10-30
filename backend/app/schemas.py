@@ -14,6 +14,8 @@ from pydantic import (
     model_validator,
 )
 
+from .models import AnalysisStatus, Stage
+
 MAX_TAGS_PER_TRACK = 10
 MAX_TAG_LENGTH = 30
 
@@ -129,3 +131,42 @@ class TrackPage(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+# --- analyses ----------------------------------------------------------------------------------
+
+
+class AnalysisSummary(BaseModel):
+    """What lists return: no metrics or feedback, which can be large."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    track_id: int
+    version_number: int
+    label: str | None
+    stage: Stage | None
+    original_filename: str
+    status: AnalysisStatus
+    error_code: str | None
+    created_at: UtcDateTime
+
+
+class AnalysisRead(AnalysisSummary):
+    metrics: dict[str, Any] | None
+    feedback: dict[str, Any] | None
+
+
+class AnalysisUpdate(BaseModel):
+    """PATCH body: only label and stage can be edited; `null` clears either one.
+    Other fields (status, metrics, ...) in the body are ignored."""
+
+    label: str | None = Field(default=None, max_length=100)
+    stage: Stage | None = None
+
+    @field_validator("label", mode="before")
+    @classmethod
+    def _blank_to_none(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return value.strip() or None
+        return value

@@ -6,6 +6,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # Only for local development. Any other environment must set JWT_SECRET.
 DEV_JWT_SECRET = "dev-only-secret-change-me-0123456789abcdef"
 
+# Upload allow-list. Content is checked for real by ffmpeg/ffprobe during analysis;
+# this only decides which files we are willing to write to disk at all.
+ALLOWED_AUDIO_EXTENSIONS = frozenset({".wav", ".mp3", ".flac", ".aif", ".aiff", ".m4a", ".ogg"})
+
 
 class Settings(BaseSettings):
     """Settings come from environment variables (and an optional backend/.env file)."""
@@ -17,6 +21,9 @@ class Settings(BaseSettings):
     jwt_secret: str = DEV_JWT_SECRET
     jwt_algorithm: str = "HS256"
     access_token_minutes: int = 30
+
+    max_upload_mb: int = 100
+    upload_tmp_dir: str | None = None  # None = the system temp directory (tests point it elsewhere)
 
     @model_validator(mode="after")
     def _require_real_secret_outside_development(self) -> "Settings":
