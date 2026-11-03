@@ -6,15 +6,17 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Response, UploadFile
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..config import ALLOWED_AUDIO_EXTENSIONS, settings
-from ..deps import CurrentUser, DbSession
-from ..models import Analysis, Stage, Track, User
+from ..deps import CurrentUser, DbSession, GeneratorFactory
+from ..models import Analysis, AnalysisStatus, Stage, Track, User
 from ..schemas import AnalysisRead, AnalysisSummary, AnalysisUpdate
 from ..services.analysis_runner import remove_quietly, run_analysis
+from ..services.feedback.errors import STATUS_FOR_CODE, FeedbackError
+from ..services.feedback.service import generate_feedback
 from .tracks import get_owned_track
 
 router = APIRouter(tags=["analyses"])
@@ -159,6 +161,46 @@ def list_analyses(track_id: int, user: CurrentUser, db: DbSession) -> list[Analy
 @router.get("/analyses/{analysis_id}", response_model=AnalysisRead)
 def read_analysis(analysis_id: int, user: CurrentUser, db: DbSession) -> Analysis:
     return get_owned_analysis(db, user, analysis_id)
+
+
+@router.post("/analyses/{analysis_id}/feedback", response_model=AnalysisRead)
+def create_feedback(
+    analysis_id: int, user: CurrentUser, db: DbSession, make_generator: GeneratorFactory
+) -> Analysis:
+    """Generate (or regenerate) AI feedback from the stored metrics.
+
+    Synchronous: the request waits for the model. Whatever goes wrong, the analysis and any
+    earlier feedback stay exactly as they were; only a successful run replaces `feedback`.
+    """
+    analysis = get_owned_analysis(db, user, analysis_id)  # 404 first, like every other route
+    if analysis.status != AnalysisStatus.DONE.value or not analysis.metrics:
+        raise HTTPException(status_code=409, detail="Feedback needs a finished analysis")
+
+    # Genre and platform are read now (they may have been edited since the upload); stage
+    # comes from the analysis row, not from metrics["context"].
+    track = db.get(Track, analysis.track_id)
+    try:
+        generator = make_generator()
+        feedback = generate_feedback(
+            generator,
+            analysis.metrics,
+            genre=track.genre,
+            target_platform=track.target_platform,
+            stage=analysis.stage,
+        )
+    except FeedbackError as exc:
+        raise HTTPException(
+            status_code=STATUS_FOR_CODE.get(exc.code, 502), detail=exc.message
+        ) from exc
+
+    # A plain UPDATE, like the background runner: it never fails on a row that has gone away
+    # (the user may have deleted the version while the model was thinking).
+    result = db.execute(update(Analysis).where(Analysis.id == analysis_id).values(feedback=feedback))
+    db.commit()
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    db.refresh(analysis)
+    return analysis
 
 
 @router.patch("/analyses/{analysis_id}", response_model=AnalysisRead)

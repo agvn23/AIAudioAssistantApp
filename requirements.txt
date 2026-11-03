@@ -2,3 +2,4 @@ numpy
 essentia
 fastapi
 uvicorn[standard]
+google-genai

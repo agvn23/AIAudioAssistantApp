@@ -39,11 +39,11 @@ The uploaded audio is a temporary file, deleted as soon as analysis finishes (su
 | `DELETE /users/me` | delete account and all data | yes |
 | `POST /tracks` | create track (with tags) | yes |
 | `GET /tracks` | list own tracks; filters `q`, `genre`, `tag`; paging | yes |
-| `GET /tracks/{id}` | one track with its analyses (summary) | yes |
+| `GET /tracks/{id}` | one track | yes |
 | `PATCH /tracks/{id}` | edit title, genre, platform, notes, tags | yes |
 | `DELETE /tracks/{id}` | delete track and its analyses | yes |
-| `POST /tracks/{id}/analyses` | upload a file (multipart) + optional stage/label; returns 202 and an analysis id | yes |
-| `GET /tracks/{id}/analyses` | list versions | yes |
+| `POST /tracks/{id}/analyses` | upload a file (multipart: `file`, optional `stage`, `label`); returns 202 with the new analysis (`pending`). Errors: 404 unknown track, 413 file over `MAX_UPLOAD_MB`, 415 unsupported file type, 422 empty file or invalid fields | yes |
+| `GET /tracks/{id}/analyses` | list versions (summaries, no metrics), oldest first | yes |
 | `GET /analyses/{id}` | status, metrics, feedback | yes |
 | `PATCH /analyses/{id}` | edit label or stage | yes |
 | `DELETE /analyses/{id}` | delete one version | yes |
@@ -54,6 +54,7 @@ Rules:
 - Every query is filtered by the current user. Another user's resource returns **404**, not 403, so ids cannot be probed.
 - Errors from the analysis engine (`AnalysisError.code`) are stored on the analysis as `failed` + `error_code`; the API never returns a raw stack trace.
 - Passwords: minimum length, generic "invalid credentials" message on login failure.
+- Allowed upload types: .wav .mp3 .flac .aif .aiff .m4a .ogg. The extension is checked on upload, and real content problems show up later as a failed analysis with an error_code.
 
 ## Upload and analysis flow
 1. Validate: extension/content type allow-list, size limit (`MAX_UPLOAD_MB`, e.g. 100).
@@ -68,11 +69,11 @@ Background tasks are enough for v1. If analysis gets slow or you need retries, m
 - Input: the stored metrics JSON plus track context (genre, target platform, stage). Nothing else, never the audio.
 - System prompt rules: use only the numbers provided, say so when confidence is low, give prioritized, actionable suggestions.
 - Output: JSON validated with Pydantic, for example `{summary, items: [{area, severity, observation, suggestion}]}`, stored in `analyses.feedback`.
-- Model name and API key come from environment variables (`ANTHROPIC_MODEL`, `ANTHROPIC_API_KEY`); check the current model names in Anthropic's docs rather than hard-coding one.
+- Model name and API key come from environment variables (FEEDBACK_PROVIDER, GEMINI_API_KEY, GEMINI_MODEL); check the current model names in Anthropic's docs rather than hard-coding one.
 - Handle API errors and timeouts: a failed feedback call must not break the analysis.
 
 ## Security checklist
-- JWT secret from the environment; short-lived access tokens (30 min).
+- JWT secret from the environment; short-lived access tokens (30 min).143
 - CORS limited to the frontend origin only.
 - ffmpeg always called with an argument list and a timeout (already true in the analysis code).
 - Size limits on uploads; consider a simple per-user rate limit later.
