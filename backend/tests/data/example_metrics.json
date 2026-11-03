@@ -1,0 +1,66 @@
+{
+  "schema_version": "0.1",
+  "file": {
+    "name": "my_secret_demo.wav",
+    "format": "wav",
+    "duration_sec": 382,
+    "sample_rate_hz": 44100,
+    "bit_depth": 24,
+    "channels": 2
+  },
+  "loudness": {
+    "integrated_lufs": -10.4,
+    "loudness_range_lu": 4.3,
+    "true_peak_dbtp": 1.2,
+    "short_term_max_lufs": -8.3,
+    "momentary_max_lufs": -7.8,
+    "sample_peak_dbfs": -0.3,
+    "clipped_samples": 0
+  },
+  "dynamics": {
+    "rms_dbfs": -12.07,
+    "crest_factor_db": 11.77,
+    "dynamic_range_db": 10.57
+  },
+  "spectrum": {
+    "bands": [
+      {"name": "sub", "low_hz": 20, "high_hz": 60, "relative_db": 11.13},
+      {"name": "bass", "low_hz": 60, "high_hz": 250, "relative_db": 7.34},
+      {"name": "low_mid", "low_hz": 250, "high_hz": 500, "relative_db": -1.6},
+      {"name": "mid", "low_hz": 500, "high_hz": 2000, "relative_db": -3.64},
+      {"name": "high_mid", "low_hz": 2000, "high_hz": 6000, "relative_db": -4.19},
+      {"name": "high", "low_hz": 6000, "high_hz": 12000, "relative_db": -0.02},
+      {"name": "air", "low_hz": 12000, "high_hz": 20000, "relative_db": -9.02}
+    ],
+    "spectral_centroid_hz": 446.97,
+    "tilt_db_per_octave": -4.83
+  },
+  "stereo": {
+    "phase_correlation": 0.8,
+    "width": 0.1,
+    "mono_compatible": true,
+    "is_mono": false,
+    "side_to_mid_db": -9.56
+  },
+  "context": {
+    "genre": "pop rock",
+    "target_platform": "spotify",
+    "stage": "demo"
+  },
+  "tempo": {
+    "bpm": 128,
+    "confidence": 0.54,
+    "alternative_bpms": [64, 256]
+  },
+  "key": {
+    "tonic": "A",
+    "mode": "minor",
+    "confidence": 0.73
+  },
+  "warnings": [
+    {
+      "code": "tempo_key_truncated",
+      "message": "tempo and key use the first 240 s only"
+    }
+  ]
+}

@@ -32,8 +32,8 @@ A running log of project decisions. Add new entries at the bottom of the table w
 
 ## Open questions
 
-- Is essentia accurate enough for BPM and key on real tracks, and does `edma` or `bgate` suit the genres you work in? First track: BPM 123.7 vs 124, key correct. Test 5-10 more with known values, including a half-time one, and log the results here.
-- Do the spectrum, stereo and DR values agree with a reference meter or plugin you trust? Spot-check a few tracks.
+- Loudness, LRA and true peak are verified against Youlean, the DAW meter, SPAN and WLM on one track (2026-11-02): integrated -10.4 vs -10.3/-10.5 LUFS, short-term max -8.3 vs -8.3, momentary max -7.8 vs -7.7/-7.8, LRA 4.3 vs 4.3, true peak +1.2 vs +1.2 to +1.3. An earlier comparison used an older render of the file and is void. Still to check: spectrum bands, stereo width and correlation, and RMS (ours -12.07 vs SPAN -13.6/-13.7 live readout). DR is not comparable (different definitions).
+
 - Database: SQLite to start; move to Postgres only if needed.
 - File retention policy and upload size limits.
 
@@ -44,3 +44,6 @@ Tag names: lower-cased, whitespace collapsed, de-duplicated, with limits of 30 c
 List response: GET /tracks returns {items, total, limit, offset}, newest first. limit is 1–100 and defaults to 20. q searches title and notes case-insensitively and treats % and _ as literal characters.
 PATCH: only the fields you send change. null clears genre, target platform and notes, but title and tags can’t be null. A tags-only change still updates updated_at.
 GET /tracks/{id}: it doesn’t include analyses yet. That comes in slice 3, when the Analysis model exists.
+
+| 2026-11-02 | Platform loudness reference table in `references.py` (Spotify -14 LUFS, Apple Music -16, YouTube -14, EBU R128 broadcast -23; true-peak ceiling -1 dBTP). Differences from the track are computed in code and cited like measurements | Only Spotify publishes its own number; the rest are commonly cited, and `basis` says so. Club and other platforms get no reference. Review the table now and then |
+| 2026-11-02 | At the demo and mix stages loudness items are capped at medium priority in code (not only in the prompt), unless samples are clipped | The final limiter comes later, so loudness is a mastering concern |

@@ -52,7 +52,9 @@ docs/DECISIONS.md  decision log
 Week 1 (analysis engine) is complete: `analysis/metrics.py` (`analyze_file`) assembles the full metrics JSON and the CLI prints it. First real-track essentia check: BPM 123.7 vs actual 124, key matched; more tracks still to test, and loudness/DR/spectrum should be spot-checked against a meter you trust.
 Week 2, slice 1 (config, database, users, auth) is done and verified: pytest green, `/docs` and `/users/me` work. Code is in `backend/app/`, tests in `tests/test_auth.py` and `tests/test_tokens.py`.
 Week 2, slice 2 (tracks and tags CRUD, ownership rules) is done on feature/tracks. 
-Next: slice 3 (upload and analysis) from docs/API.md.
+Week 2, slice 3 (upload and analysis) from docs/API.md. is done.
+Week 2, slice 4 AI feedback is done (Gemini free tier, behind a FeedbackGenerator interface; see docs/DECISIONS.md)
+next slice 5 (account deletion, error mapping, CORS, limits, README).
 
 ## Plan
 1. Analysis engine + metrics JSON (this slice)
