@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 from typing import Any
 
 from sqlalchemy import update
@@ -9,10 +10,17 @@ from sqlalchemy import update
 from analysis.errors import AnalysisError  # adjust if AnalysisError lives elsewhere
 from analysis.metrics import analyze_file
 
+from ..config import settings
 from ..db import SessionLocal
 from ..models import Analysis, AnalysisStatus
 
 logger = logging.getLogger(__name__)
+
+# At most this many analyses run at once (each one starts ffmpeg and essentia, which are CPU
+# heavy). Background tasks beyond that wait here and keep the status "pending" meanwhile. The
+# upload route bounds how many can be waiting (MAX_ACTIVE_ANALYSES_GLOBAL), so waiting tasks
+# cannot use up the thread pool that also serves the API.
+_slots = threading.BoundedSemaphore(settings.max_concurrent_analyses)
 
 
 def remove_quietly(path: str) -> None:
@@ -46,34 +54,36 @@ def run_analysis(
     It opens its own sessions: the request's session is closed once the response is sent.
     """
     try:
-        if not _update(analysis_id, status=AnalysisStatus.RUNNING.value):
-            return  # deleted before it started
+        with _slots:  # wait for a free slot; the row stays "pending" until one opens up
+            if not _update(analysis_id, status=AnalysisStatus.RUNNING.value):
+                return  # deleted before it started
 
-        try:
-            metrics = analyze_file(temp_path, context=context or None)
-        except AnalysisError as exc:
-            _update(analysis_id, status=AnalysisStatus.FAILED.value, error_code=exc.code)
-            return
-        except Exception:
-            # Log server-side (never the audio); the API only ever shows a generic code.
-            logger.exception("analysis %s failed unexpectedly", analysis_id)
+            try:
+                metrics = analyze_file(temp_path, context=context or None)
+            except AnalysisError as exc:
+                _update(analysis_id, status=AnalysisStatus.FAILED.value, error_code=exc.code)
+                return
+            except Exception:
+                # Log server-side (never the audio); the API only ever shows a generic code.
+                logger.exception("analysis %s failed unexpectedly", analysis_id)
+                _update(
+                    analysis_id, status=AnalysisStatus.FAILED.value, error_code="internal_error"
+                )
+                return
+
+            # The engine saw a random temp name; show the user's own file name instead.
+            metrics.setdefault("file", {})["name"] = original_filename
             _update(
-                analysis_id, status=AnalysisStatus.FAILED.value, error_code="internal_error"
+                analysis_id, status=AnalysisStatus.DONE.value, metrics=metrics, error_code=None
             )
-            return
-
-        # The engine saw a random temp name; show the user's own file name instead.
-        metrics.setdefault("file", {})["name"] = original_filename
-        _update(
-            analysis_id, status=AnalysisStatus.DONE.value, metrics=metrics, error_code=None
-        )
     finally:
         remove_quietly(temp_path)
 
 
 def mark_interrupted() -> int:
     """Called at startup. Background tasks die with the process, so anything still pending or
-    running belongs to a previous run and would otherwise stay stuck forever.
+    running belongs to a previous run and would otherwise stay stuck forever (and, now, count
+    against the active-analysis limits).
     (Assumes a single server process; revisit when moving to a queue or several workers.)"""
     with SessionLocal() as db:
         result = db.execute(

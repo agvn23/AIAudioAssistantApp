@@ -25,6 +25,11 @@ def utcnow() -> datetime:
 
 class User(Base):
     __tablename__ = "users"
+    # SQLite reuses the highest rowid after that row is deleted. For users that would let a
+    # token issued to a deleted account authenticate as the next person to register.
+    # AUTOINCREMENT makes SQLite never hand out an id twice (Postgres sequences already behave
+    # this way). Tracks, tags and analyses are always ownership-checked, so they do not need it.
+    __table_args__ = {"sqlite_autoincrement": True}
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)

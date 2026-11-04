@@ -12,7 +12,9 @@ from sqlalchemy.orm import Session
 
 from ..config import ALLOWED_AUDIO_EXTENSIONS, settings
 from ..deps import CurrentUser, DbSession, GeneratorFactory
+from ..error_handling import ApiError
 from ..models import Analysis, AnalysisStatus, Stage, Track, User
+from ..rate_limit import enforce, make_rule
 from ..schemas import AnalysisRead, AnalysisSummary, AnalysisUpdate
 from ..services.analysis_runner import remove_quietly, run_analysis
 from ..services.feedback.errors import STATUS_FOR_CODE, FeedbackError
@@ -22,6 +24,7 @@ from .tracks import get_owned_track
 router = APIRouter(tags=["analyses"])
 
 CHUNK_BYTES = 1024 * 1024
+_ACTIVE = (AnalysisStatus.PENDING.value, AnalysisStatus.RUNNING.value)
 
 
 def get_owned_analysis(db: Session, user: User, analysis_id: int) -> Analysis:
@@ -45,13 +48,53 @@ def _clean_filename(raw: str | None) -> str:
     return name[:255] or "upload"
 
 
+def _check_capacity(db: Session, user: User, track_id: int) -> None:
+    """Refuse an upload when a quota or the analysis capacity is used up. Runs before the file
+    is written to disk."""
+    versions = db.scalar(
+        select(func.count()).select_from(Analysis).where(Analysis.track_id == track_id)
+    )
+    if (versions or 0) >= settings.max_analyses_per_track:
+        raise ApiError(
+            409,
+            f"A track can have at most {settings.max_analyses_per_track} versions",
+            code="quota_exceeded",
+        )
+
+    mine = db.scalar(
+        select(func.count())
+        .select_from(Analysis)
+        .join(Track, Track.id == Analysis.track_id)
+        .where(Track.user_id == user.id, Analysis.status.in_(_ACTIVE))
+    )
+    if (mine or 0) >= settings.max_active_analyses_per_user:
+        raise ApiError(
+            429,
+            "You already have analyses running. Wait for them to finish, then upload again.",
+            code="too_many_active_analyses",
+            headers={"Retry-After": "10"},
+        )
+
+    everyone = db.scalar(
+        select(func.count()).select_from(Analysis).where(Analysis.status.in_(_ACTIVE))
+    )
+    if (everyone or 0) >= settings.max_active_analyses_global:
+        raise ApiError(
+            503,
+            "The server is busy analysing other uploads. Please try again shortly.",
+            code="server_busy",
+            headers={"Retry-After": "30"},
+        )
+
+
 def _save_upload(upload: UploadFile, suffix: str) -> str:
     """Copy the upload to a randomly named temp file, enforcing the size limit while copying.
     Returns the path. On any failure the partial file is removed.
 
     Note: Starlette has already received and spooled the request body by the time we get
-    here, so this limit protects disk and ffmpeg, not bandwidth. Put a body-size limit on
-    the reverse proxy when deploying."""
+    here, so this limit protects disk and ffmpeg, not bandwidth. The body-size middleware
+    (request_limits.py) rejects most oversized requests earlier; put a body-size limit on the
+    reverse proxy when deploying."""
     limit = settings.max_upload_mb * 1024 * 1024
     too_large = HTTPException(
         status_code=413, detail=f"File is larger than {settings.max_upload_mb} MB"
@@ -123,6 +166,11 @@ def upload_analysis(
     if suffix not in ALLOWED_AUDIO_EXTENSIONS:
         raise HTTPException(status_code=415, detail="Unsupported audio file type")
 
+    # Quotas and capacity first, then the rate limit: a refused upload should not use up the
+    # user's hourly budget.
+    _check_capacity(db, user, track.id)
+    enforce(make_rule("upload", user.id, settings.rate_limit_upload))
+
     # What the engine gets to know about the track (it passes this through untouched).
     context = {
         key: value
@@ -176,6 +224,14 @@ def create_feedback(
     if analysis.status != AnalysisStatus.DONE.value or not analysis.metrics:
         raise HTTPException(status_code=409, detail="Feedback needs a finished analysis")
 
+    # Rate limit last among the cheap checks, right before the call that spends free-tier
+    # quota: unknown ids and unfinished analyses do not use up the budget. One per-user rule
+    # and one budget shared by everyone; both record the hit together or not at all.
+    enforce(
+        make_rule("feedback", user.id, settings.rate_limit_feedback),
+        make_rule("feedback-global", "all", settings.rate_limit_feedback_global),
+    )
+
     # Genre and platform are read now (they may have been edited since the upload); stage
     # comes from the analysis row, not from metrics["context"].
     track = db.get(Track, analysis.track_id)
@@ -189,8 +245,8 @@ def create_feedback(
             stage=analysis.stage,
         )
     except FeedbackError as exc:
-        raise HTTPException(
-            status_code=STATUS_FOR_CODE.get(exc.code, 502), detail=exc.message
+        raise ApiError(
+            STATUS_FOR_CODE.get(exc.code, 502), exc.message, code=exc.code
         ) from exc
 
     # A plain UPDATE, like the background runner: it never fails on a row that has gone away
