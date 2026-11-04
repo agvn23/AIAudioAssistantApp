@@ -1,15 +1,25 @@
 from __future__ import annotations
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import MetaData, create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from .config import settings
 
+# Every constraint gets a predictable name. SQLite can only change a table by rebuilding it
+# (Alembic's "batch" mode), and that needs names to refer to; Postgres needs them to drop or
+# alter a constraint later. Constraints that are named explicitly in the models keep their name.
+NAMING_CONVENTION = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+}
+
 
 class Base(DeclarativeBase):
-    pass
+    metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
 
 def make_engine(url: str) -> Engine:

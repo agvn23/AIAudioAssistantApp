@@ -227,7 +227,7 @@ def test_unconfigured_provider_returns_503_and_changes_nothing(
 
     r = ask(client, alice, analysis_id)
     assert r.status_code == 503
-    assert "not configured" in r.json()["detail"].lower()
+    assert "not configured" in r.json()["error"]["message"].lower()
     assert fetch(client, alice, analysis_id) == before
 
 
@@ -246,7 +246,7 @@ def test_provider_failures_map_to_http_errors_and_keep_the_old_feedback(
     use_generator(FakeGenerator(FeedbackError(code, "A safe message.")))
     r = ask(client, alice, analysis_id)
     assert r.status_code == status
-    assert r.json()["detail"] == "A safe message."
+    assert r.json()["error"]["message"] == "A safe message."
 
     after = fetch(client, alice, analysis_id)
     assert after == before

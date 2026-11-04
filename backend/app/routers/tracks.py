@@ -7,7 +7,9 @@ from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from ..config import settings
 from ..deps import CurrentUser, DbSession
+from ..error_handling import ApiError
 from ..models import Tag, Track, User, track_tags, utcnow
 from ..schemas import TrackCreate, TrackPage, TrackRead, TrackUpdate
 
@@ -63,6 +65,14 @@ def _save(db: Session, user: User) -> None:
 
 @router.post("", response_model=TrackRead, status_code=201)
 def create_track(payload: TrackCreate, user: CurrentUser, db: DbSession) -> Track:
+    owned = db.scalar(select(func.count()).select_from(Track).where(Track.user_id == user.id))
+    if (owned or 0) >= settings.max_tracks_per_user:
+        raise ApiError(
+            409,
+            f"Track limit reached: an account can have at most {settings.max_tracks_per_user} tracks",
+            code="quota_exceeded",
+        )
+
     track = Track(
         user_id=user.id,  # always the caller; the client cannot choose the owner
         title=payload.title,
