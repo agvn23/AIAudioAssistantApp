@@ -54,3 +54,6 @@ samples/
 *.flac
 *.aiff
 *.m4a
+
+# Real metrics from my own tracks (sanitized fixtures live one level up)
+frontend/src/test/fixtures/private/
