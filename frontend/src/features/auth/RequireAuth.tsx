@@ -42,11 +42,12 @@ export function RequireAuth() {
     case 'signedOut': {
       const reason = getPendingReason()
       const here = location.pathname + location.search + location.hash
-      const to =
-        reason === 'logout' ? '/login' : buildLoginUrl(here, { expired: reason === 'expired' })
+      let to: string
+      if (reason === 'logout') to = '/login'
+      else if (reason === 'deleted') to = '/login?reason=deleted'
+      else to = buildLoginUrl(here, { expired: reason === 'expired' })
       return <Navigate to={to} replace />
     }
-
     case 'signedIn':
       return <Outlet />
   }

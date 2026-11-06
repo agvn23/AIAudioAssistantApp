@@ -10,6 +10,11 @@
   cursor: pointer;
 }
 
+.danger {
+  color: var(--color-on-error);
+  background: var(--color-error);
+}
+
 .button:hover:not(:disabled) {
   filter: brightness(1.1);
 }

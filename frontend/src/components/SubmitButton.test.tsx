@@ -11,6 +11,7 @@ describe('SubmitButton', () => {
     expect(button).toHaveAttribute('type', 'submit')
     expect(button).toBeEnabled()
     expect(button).not.toHaveAttribute('aria-busy')
+    expect(button).toHaveAttribute('data-variant', 'primary')
   })
 
   it('is disabled and shows the pending label while pending', () => {
@@ -29,6 +30,12 @@ describe('SubmitButton', () => {
     render(<SubmitButton disabled>Create account</SubmitButton>)
 
     expect(screen.getByRole('button', { name: 'Create account' })).toBeDisabled()
+  })
+
+  it('supports a danger variant', () => {
+    render(<SubmitButton variant="danger">Delete</SubmitButton>)
+
+    expect(screen.getByRole('button', { name: 'Delete' })).toHaveAttribute('data-variant', 'danger')
   })
 
   it('has no accessibility violations', async () => {

@@ -96,7 +96,7 @@ export function LoginPage() {
   }, [])
 
   const returnTo = safeReturnTo(params.get('returnTo'))
-  const expired = params.get('reason') === 'expired'
+  const reason = params.get('reason')
 
   // Visiting /login while already signed in has nothing to show.
   if (auth.status === 'signedIn') return <Navigate to={returnTo} replace />
@@ -144,9 +144,15 @@ export function LoginPage() {
     <section className={styles.page}>
       <h1>Sign in</h1>
 
-      {expired ? (
+      {reason === 'expired' ? (
         <p role="status" className={styles.notice}>
           Your session expired. Sign in again to continue.
+        </p>
+      ) : null}
+
+      {reason === 'deleted' ? (
+        <p role="status" className={styles.notice}>
+          Your account and all its data were deleted.
         </p>
       ) : null}
 
