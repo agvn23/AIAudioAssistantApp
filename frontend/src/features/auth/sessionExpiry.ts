@@ -1,4 +1,5 @@
 import { setUnauthorizedHandler } from '../../api/client'
+import { setPendingReason } from './pendingReason'
 import { buildLoginUrl, isAuthPath } from './returnTo'
 
 export interface SessionExpiryDeps {
@@ -13,12 +14,15 @@ export interface SessionExpiryDeps {
  * has already cleared the token. We clear cached data and send the person to
  * /login with the page they were on, flagged as expired. On the login or
  * register page there is nothing to leave, so only the cache is cleared.
+ * The route guard redirects too once the token is gone, so the reason is
+ * recorded for it: both redirects then produce the same URL.
  */
 export function createSessionExpiryHandler(deps: SessionExpiryDeps): () => void {
   return () => {
     deps.clearCache()
     const { pathname, search, hash } = deps.getLocation()
     if (isAuthPath(pathname)) return
+    setPendingReason('expired')
     deps.navigate(buildLoginUrl(pathname + search + hash, { expired: true }))
   }
 }

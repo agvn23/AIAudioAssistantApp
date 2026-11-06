@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import type { FieldErrors } from 'react-hook-form'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router'
@@ -10,6 +10,7 @@ import { SubmitButton } from '../../components/SubmitButton'
 import { TextField } from '../../components/TextField'
 import styles from './LoginPage.module.css'
 import { buildAuthLink, safeReturnTo } from './returnTo'
+import { clearPendingReason } from './pendingReason'
 import { PASSWORD_MAX, validateEmail } from './rules'
 import { useAuth } from './useAuth'
 import { useCountdown } from './useCountdown'
@@ -89,6 +90,10 @@ export function LoginPage() {
     setError,
     formState: { errors, isSubmitting },
   } = useForm<LoginValues>({ defaultValues: { email: '', password: '' } })
+  // The login page is where a pending redirect reason ends.
+  useEffect(() => {
+    clearPendingReason()
+  }, [])
 
   const returnTo = safeReturnTo(params.get('returnTo'))
   const expired = params.get('reason') === 'expired'
