@@ -1,0 +1,23 @@
+.page {
+  max-width: 26rem;
+  margin: var(--space-6) auto;
+}
+
+.notice {
+  margin: 0 0 var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-left: 4px solid var(--color-accent);
+  border-radius: var(--radius);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.alternative {
+  margin-top: var(--space-5);
+}
