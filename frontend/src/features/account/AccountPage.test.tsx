@@ -40,7 +40,7 @@ function renderAccount() {
 
 // The closed dialog may or may not count as hidden in jsdom, so always ask for it
 // explicitly and check its open attribute instead.
-const dialogEl = () => screen.getByRole('dialog', { hidden: true })
+const dialogEl = () => screen.getByRole<HTMLDialogElement>('dialog', { hidden: true })
 
 type Typist = ReturnType<typeof userEvent.setup>
 
