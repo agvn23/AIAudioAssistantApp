@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { buildLoginUrl, DEFAULT_RETURN_TO, isAuthPath, safeReturnTo } from './returnTo'
+import {
+  buildAuthLink,
+  buildLoginUrl,
+  DEFAULT_RETURN_TO,
+  isAuthPath,
+  safeReturnTo,
+} from './returnTo'
 
 describe('safeReturnTo', () => {
   it('keeps same-origin paths with query and hash', () => {
@@ -72,5 +78,21 @@ describe('buildLoginUrl', () => {
 
   it('drops an unsafe return path', () => {
     expect(buildLoginUrl('//evil.example')).toBe('/login')
+  })
+})
+describe('buildAuthLink', () => {
+  it('is the bare path for the default destination', () => {
+    expect(buildAuthLink('/register', null)).toBe('/register')
+    expect(buildAuthLink('/login', '/tracks')).toBe('/login')
+  })
+
+  it('carries a real return path, encoded', () => {
+    expect(buildAuthLink('/register', '/tracks/5?tag=house')).toBe(
+      '/register?returnTo=%2Ftracks%2F5%3Ftag%3Dhouse',
+    )
+  })
+
+  it('drops an unsafe return path', () => {
+    expect(buildAuthLink('/login', '//evil.example')).toBe('/login')
   })
 })

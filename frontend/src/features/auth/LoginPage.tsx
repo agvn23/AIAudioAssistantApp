@@ -9,7 +9,7 @@ import type { ErrorSummaryItem } from '../../components/ErrorSummary'
 import { SubmitButton } from '../../components/SubmitButton'
 import { TextField } from '../../components/TextField'
 import styles from './LoginPage.module.css'
-import { DEFAULT_RETURN_TO, safeReturnTo } from './returnTo'
+import { buildAuthLink, safeReturnTo } from './returnTo'
 import { PASSWORD_MAX, validateEmail } from './rules'
 import { useAuth } from './useAuth'
 import { useCountdown } from './useCountdown'
@@ -133,10 +133,7 @@ export function LoginPage() {
     }
   }
 
-  const registerParams = new URLSearchParams()
-  if (returnTo !== DEFAULT_RETURN_TO) registerParams.set('returnTo', returnTo)
-  const registerQuery = registerParams.toString()
-  const registerHref = registerQuery === '' ? '/register' : `/register?${registerQuery}`
+  const registerHref = buildAuthLink('/register', returnTo)
 
   return (
     <section className={styles.page}>

@@ -53,3 +53,12 @@ export function buildLoginUrl(
   const query = params.toString()
   return query === '' ? '/login' : `/login?${query}`
 }
+/** "/login" or "/register", carrying returnTo only when it is not the default. */
+export function buildAuthLink(
+  path: '/login' | '/register',
+  returnTo: string | null | undefined,
+): string {
+  const target = safeReturnTo(returnTo)
+  if (target === DEFAULT_RETURN_TO) return path
+  return `${path}?${new URLSearchParams({ returnTo: target }).toString()}`
+}
