@@ -58,3 +58,15 @@ A running log of project decisions. Add new entries at the bottom of the table w
 - Deployment: where it will run, which reverse proxy enforces the body limit, and whether a single process is still enough (the rate limiter, analysis slots and background tasks all assume one).
 - Database: SQLite to start; move to Postgres only if needed.
 - File retention: audio is deleted after analysis, only metrics are kept. Decide whether stored metrics and feedback should expire.
+
+Decision	Reason
+No “confirm password” field on register	The plan didn’t include one. Revisit if typos in passwords turn out to be a problem.
+A wrong-password login shows our own “Incorrect email or password.”	The generic copy for unauthorized talks about expired sessions, which is wrong on the login form.
+returnTo is sanitised (same-origin paths only, never /login or /register)	The query string is user-controlled, so without this a crafted link would redirect off-site after login.
+The token store is subscribable and AuthProvider reads it with useSyncExternalStore	The API client clears the token outside React after a 401, so a copy in React state would go stale.
+A small pendingReason module records why a redirect to login is happening (expired, logout, deleted)	The 401 handler and the route guard both redirect and must produce the same URL.
+If registration works but the automatic sign-in fails, a retry only repeats the sign-in	Registering again would be a 409.
+The delete-account dialog uses native <dialog>; Tab leaves it for the browser UI	Native modal behaviour. A custom focus trap was judged unnecessary.
+vitest-axe is used through a helper, with color-contrast and region disabled	jsdom has no layout, so contrast can’t be computed. Contrast was checked by hand.
+jsdom gets a small showModal/close stand-in in src/test/setup.ts	As far as I know jsdom lacks them. Real behaviour is checked in a browser.
+npm install prints an allow-scripts warning for fsevents and msw	Not decided yet. Review together with npm audit in the polish slice.
