@@ -4,6 +4,8 @@ import { AccountPage } from '../features/account/AccountPage'
 import { LoginPage } from '../features/auth/LoginPage'
 import { RegisterPage } from '../features/auth/RegisterPage'
 import { RequireAuth } from '../features/auth/RequireAuth'
+import { TrackDetailPage } from '../features/tracks/TrackDetailPage'
+import { TracksPage } from '../features/tracks/TracksPage'
 import { Layout } from './Layout'
 import { NotFoundPage } from './NotFoundPage'
 import { PlaceholderPage } from './PlaceholderPage'
@@ -20,8 +22,8 @@ export const routes: RouteObject[] = [
       {
         element: <RequireAuth />,
         children: [
-          { path: 'tracks', element: <PlaceholderPage title="Tracks" /> },
-          { path: 'tracks/:id', element: <PlaceholderPage title="Track" /> },
+          { path: 'tracks', element: <TracksPage /> },
+          { path: 'tracks/:id', element: <TrackDetailPage /> },
           { path: 'analyses/:id', element: <PlaceholderPage title="Analysis" /> },
           { path: 'account', element: <AccountPage /> },
         ],
