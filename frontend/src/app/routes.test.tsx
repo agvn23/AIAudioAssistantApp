@@ -29,12 +29,21 @@ function serveMe() {
   server.use(http.get(ME_URL, () => HttpResponse.json(account)))
 }
 
+function serveEmptyTracks() {
+  server.use(
+    http.get(`${API_BASE_URL}/tracks`, () =>
+      HttpResponse.json({ items: [], total: 0, limit: 20, offset: 0 }),
+    ),
+  )
+}
+
 function signIn() {
   tokenStore.set('tok-1')
   serveMe()
 }
 
 function renderApp(url: string) {
+  serveEmptyTracks()
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const router = createMemoryRouter(routes, { initialEntries: [url] })
   const view = render(
@@ -120,7 +129,6 @@ describe('signed in', () => {
   })
 
   it.each([
-    ['/tracks/3', 'Track'],
     ['/analyses/7', 'Analysis'],
     ['/account', 'Account'],
   ])('opens %s', async (url, heading) => {
@@ -155,6 +163,7 @@ describe('signed in', () => {
     signIn()
     const { container } = renderApp('/tracks')
     await screen.findByRole('heading', { level: 1, name: 'Tracks' })
+    await screen.findByText('You have no tracks yet.')
 
     await expectNoA11yViolations(container)
   })

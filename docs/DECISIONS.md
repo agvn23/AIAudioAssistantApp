@@ -70,3 +70,21 @@ The delete-account dialog uses native <dialog>; Tab leaves it for the browser UI
 vitest-axe is used through a helper, with color-contrast and region disabled	jsdom has no layout, so contrast can’t be computed. Contrast was checked by hand.
 jsdom gets a small showModal/close stand-in in src/test/setup.ts	As far as I know jsdom lacks them. Real behaviour is checked in a browser.
 npm install prints an allow-scripts warning for fsevents and msw	Not decided yet. Review together with npm audit in the polish slice.
+the dialog mounts only while open; a created track opens its page; track field lengths are counted in characters and after trimming; the notes hint says notes are never sent to the AI.
+Delete dialog: focus starts on Cancel, and a 404 shows an alert and stays open.
+Polish cleanup: the “describe failure” helper is duplicated in three dialogs.
+Slice 2 
+List state is the URL: q, genre, tag and page. limit is fixed at 20. Changing a filter goes back to page 1, and invalid values fall back to defaults.
+Draft fields on the list: the search and genre fields hold a draft, written to the URL on submit and reset from the URL when it changes.
+Previous rows stay while paging: they dim while the next page loads (keepPreviousData), and “empty” or “page does not exist” messages wait for the real answer.
+No GET /tags: chips only show the tags of the tracks on the current page. An active tag filter from the URL is always shown and removable. Revisit with a backend GET /tags if a tag picker is needed.
+Tag rules mirror the server in the form: normalised, 30 characters counted as characters (not UTF-16 units), 10 per track. A rejected tag shows an error and is never silently cut.
+PATCH sends only changed fields: values are compared after trimming and tags as a set. No change means no request, and a cleared field sends null.
+Unknown platform values are kept: they appear as an extra “(existing value)” option, so editing never loses them.
+Field lengths come from openapi.json, not API.md: title 200, genre 100, platform 100, notes 5000. They are counted in characters after trimming, with no native maxLength on the form fields.
+Dialogs mount only while open: the form starts fresh each time, closes through native close() so focus returns to the opener, and Esc is ignored while a request is in flight. The delete dialog starts with focus on Cancel.
+Cache behaviour: all track query keys start with tracks. Create and update write the returned track into the detail cache and invalidate the lists. Delete marks the detail stale without refetching it.
+Detail page: a 404 wins over cached data, and a non-numeric id shows “not found” without a request. A created track opens its page.
+Notes hint: the form says notes are never sent to the AI, matching the backend decision.
+SelectField and TextAreaField: they reuse TextField’s stylesheet.
+Test and lint adjustments: handleSubmit is called inside the submit handler (the react-hooks/refs rule), and the dialog focuses the title field directly in an effect (RHF’s setFocus did not land in jsdom).
