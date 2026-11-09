@@ -61,7 +61,8 @@ docs/DECISIONS.md  decision log
 Week 1 (analysis engine) is complete: `analysis/metrics.py` (`analyze_file`) assembles the full metrics JSON and the CLI prints it. Loudness, LRA and true peak are verified against Youlean, the DAW meter, SPAN and WLM on one track. Still open: spectrum bands, stereo width/correlation and RMS are not yet spot-checked against a meter; tempo/key reliability thresholds are calibrated on one track (two checked in total).
 Week 2 (API) is complete: slices 1-5 done (config/db/auth, tracks and tags, upload and analysis, AI feedback, hardening with account deletion, error envelope, CORS, limits, rate limits, Alembic, README). 373 tests passing, 1 skipped (an opt-in live test).
 Week 3 (frontend), slice 0 is done and merged: Vite + React + strict TypeScript 5.9 in frontend/, Vitest + React Testing Library + MSW 2, Prettier, typed client generated from schema/openapi.json (npm run api:types), ApiError normalisation, sessionStorage token store, router shell and a throwaway health page. 26 tests passing. 
-Next: slice 1 (auth). Slices: 1 auth, 2 tracks, 3 upload + polling, 4 results, 5 polish + docs. Details of the frontend plan are in docs/DECISIONS.md once the docs pass at the end of the week.
+Week 3 (frontend): slice 0 done. Slice 1 (auth) done and merged: login, register (auto sign-in), route guard, session-expiry handling, account page with delete-account dialog, shared form components. NNN tests passing.
+Next: slice 2 (tracks). Slices: 2 tracks, 3 upload + polling, 4 results, 5 polish + docs.
 
 ## Plan
 1. Analysis engine + metrics JSON (done)
