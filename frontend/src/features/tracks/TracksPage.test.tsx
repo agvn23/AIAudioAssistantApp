@@ -342,6 +342,7 @@ describe('creating a track', () => {
     server.use(
       http.post(url('/tracks'), () => HttpResponse.json(makeTrack(99), { status: 201 })),
       http.get(url('/tracks/99'), () => HttpResponse.json(makeTrack(99))),
+      http.get(url('/tracks/99/analyses'), () => HttpResponse.json([])),
     )
     const { router, user } = renderTracks('/tracks')
     await screen.findByRole('link', { name: 'Track 1' })
