@@ -128,14 +128,35 @@ describe('signed in', () => {
     expect(where(router)).toBe('/tracks')
   })
 
-  it.each([
-    ['/analyses/7', 'Analysis'],
-    ['/account', 'Account'],
-  ])('opens %s', async (url, heading) => {
+  it('opens /account', async () => {
     signIn()
-    renderApp(url)
+    renderApp('/account')
 
-    expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Account' })).toBeInTheDocument()
+  })
+
+  it('opens a version page', async () => {
+    signIn()
+    server.use(
+      http.get(`${API_BASE_URL}/analyses/7`, () =>
+        HttpResponse.json({
+          id: 7,
+          track_id: 3,
+          version_number: 2,
+          label: null,
+          stage: null,
+          original_filename: 'mix2.wav',
+          status: 'done',
+          error_code: null,
+          created_at: '2026-11-10T09:30:00Z',
+          metrics: null,
+          feedback: null,
+        }),
+      ),
+    )
+    renderApp('/analyses/7')
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Version 2' })).toBeInTheDocument()
   })
 
   it('shows the email on the account page', async () => {
