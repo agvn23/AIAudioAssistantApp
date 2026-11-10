@@ -7,6 +7,7 @@ import { describeAnalysisError } from './analysisErrors'
 import styles from './TrackVersions.module.css'
 import { UploadVersionDialog } from './UploadVersionDialog'
 import { useTrackAnalyses } from './useAnalyses'
+import { rememberFile } from './sessionFiles'
 
 const STATUS_LABEL: Record<AnalysisStatus, string> = {
   pending: 'Waiting to start',
@@ -115,7 +116,10 @@ export function TrackVersions({ trackId }: TrackVersionsProps) {
         <UploadVersionDialog
           trackId={trackId}
           onClose={() => setUploading(false)}
-          onUploaded={(analysis) => setUploaded(analysis)}
+          onUploaded={(analysis, file) => {
+            rememberFile(analysis.id, file)
+            setUploaded(analysis)
+          }}
         />
       ) : null}
     </section>

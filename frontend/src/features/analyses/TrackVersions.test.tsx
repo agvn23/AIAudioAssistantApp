@@ -10,6 +10,7 @@ import { uploadAnalysis } from '../../api/uploadAnalysis'
 import { expectNoA11yViolations } from '../../test/a11y'
 import { server } from '../../test/server'
 import { TrackVersions } from './TrackVersions'
+import { getRememberedFile } from './sessionFiles'
 
 vi.mock('../../api/uploadAnalysis', () => ({ uploadAnalysis: vi.fn() }))
 const uploadMock = vi.mocked(uploadAnalysis)
@@ -223,5 +224,6 @@ describe('uploading a version', () => {
     expect(await screen.findByRole('link', { name: 'Version 2' })).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(uploadMock).toHaveBeenCalledWith(3, expect.any(File), expect.any(Object))
+    expect(getRememberedFile(22)).toBeInstanceOf(File)
   })
 })

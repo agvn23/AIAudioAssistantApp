@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { ApiError, describeError } from '../../api/errors'
 import type { Analysis } from '../../api/types'
@@ -8,7 +8,11 @@ import styles from './AnalysisPage.module.css'
 import { DeleteVersionDialog } from './DeleteVersionDialog'
 import { EditVersionDialog } from './EditVersionDialog'
 import { STAGE_LABEL, STATUS_LABEL } from './labels'
+import { forgetFile, getRememberedFile } from './sessionFiles'
 import { useAnalysis } from './useAnalyses'
+
+// Loaded only when there is a local file to draw, so wavesurfer stays out of the main bundle.
+const Waveform = lazy(() => import('./Waveform').then((module) => ({ default: module.Waveform })))
 
 function parseId(raw: string | undefined): number | null {
   if (raw === undefined || !/^\d+$/.test(raw)) return null
@@ -47,6 +51,27 @@ function VersionMissing() {
       <p>
         <Link to="/tracks">Back to all tracks</Link>
       </p>
+    </section>
+  )
+}
+
+/** The waveform of the file uploaded in this session, or an honest note that there is none. */
+function WaveformSection({ analysisId }: { analysisId: number }) {
+  const file = getRememberedFile(analysisId)
+  return (
+    <section aria-labelledby="waveform-heading" className={styles.later}>
+      <h2 id="waveform-heading">Waveform</h2>
+      {file ? (
+        <Suspense fallback={<p role="status">Loading waveform…</p>}>
+          <Waveform key={analysisId} file={file} />
+        </Suspense>
+      ) : (
+        <p>
+          The waveform is drawn from the file on your computer, which is never stored on the server.
+          It is only available in the browser tab where you uploaded the file, until you reload the
+          page or sign out.
+        </p>
+      )}
     </section>
   )
 }
@@ -131,6 +156,8 @@ function VersionDetail({ id }: { id: number }) {
         </div>
       </dl>
 
+      <WaveformSection analysisId={analysis.id} />
+
       <section aria-labelledby="results-heading" className={styles.later}>
         <h2 id="results-heading">Results</h2>
         <p>Measurements and AI feedback are coming in a later slice.</p>
@@ -142,6 +169,7 @@ function VersionDetail({ id }: { id: number }) {
           analysis={analysis}
           onClose={() => setDeleting(false)}
           onDeleted={() => {
+            forgetFile(analysis.id)
             void navigate(`/tracks/${analysis.track_id}`)
           }}
         />
