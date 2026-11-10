@@ -6,6 +6,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { API_BASE_URL } from '../../api/client'
 import { tokenStore } from '../../api/token'
+import type { AnalysisSummary } from '../../api/types'
 import { routes } from '../../app/routes'
 import { expectNoA11yViolations } from '../../test/a11y'
 import { server } from '../../test/server'
@@ -33,7 +34,10 @@ const track = {
 }
 
 function serveTrack(body: object = track) {
-  server.use(http.get(url('/tracks/7'), () => HttpResponse.json(body)))
+  server.use(
+    http.get(url('/tracks/7'), () => HttpResponse.json(body)),
+    http.get(url('/tracks/7/analyses'), () => HttpResponse.json([])),
+  )
 }
 
 function renderPage(initialUrl: string, seed?: object) {
@@ -170,6 +174,7 @@ describe('a track that cannot be shown', () => {
       http.get(url('/tracks/7'), () =>
         HttpResponse.json(errorBody('not_found', 'Track not found'), { status: 404 }),
       ),
+      http.get(url('/tracks/7/analyses'), () => HttpResponse.json([])),
     )
     renderPage('/tracks/7', track)
 
@@ -229,5 +234,43 @@ describe('deleting', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(where(router)).toBe('/tracks/7')
+  })
+})
+
+describe('versions', () => {
+  const version: AnalysisSummary = {
+    id: 21,
+    track_id: 7,
+    version_number: 1,
+    label: 'rough idea',
+    stage: 'demo',
+    original_filename: 'idea.wav',
+    status: 'done',
+    error_code: null,
+    created_at: '2026-11-01T10:00:00Z',
+  }
+
+  it('lists the versions of the track and links to each one', async () => {
+    server.use(
+      http.get(url('/tracks/7'), () => HttpResponse.json(track)),
+      http.get(url('/tracks/7/analyses'), () => HttpResponse.json([version])),
+    )
+    renderPage('/tracks/7')
+
+    expect(await screen.findByRole('link', { name: 'Version 1' })).toHaveAttribute(
+      'href',
+      '/analyses/21',
+    )
+    expect(screen.getByText('idea.wav')).toBeInTheDocument()
+  })
+
+  it('opens the upload dialog from the Versions section', async () => {
+    serveTrack()
+    const { user } = renderPage('/tracks/7')
+    await screen.findByText('No versions yet. Upload a file to analyse it.')
+
+    await user.click(screen.getByRole('button', { name: 'Upload new version' }))
+
+    expect(screen.getByRole('dialog', { name: 'Upload a new version' })).toBeInTheDocument()
   })
 })

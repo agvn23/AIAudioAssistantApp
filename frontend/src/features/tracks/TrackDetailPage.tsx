@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { ApiError, describeError } from '../../api/errors'
 import { Button } from '../../components/Button'
+import { TrackVersions } from '../analyses/TrackVersions'
 import { DeleteTrackDialog } from './DeleteTrackDialog'
 import { PLATFORMS } from './trackForm'
 import { TrackFormDialog } from './TrackFormDialog'
@@ -129,10 +130,7 @@ function TrackDetail({ id }: { id: number }) {
         </div>
       </dl>
 
-      <section aria-labelledby="versions-heading" className={styles.versions}>
-        <h2 id="versions-heading">Versions</h2>
-        <p>Uploading and analysing versions is coming in a later slice.</p>
-      </section>
+      <TrackVersions trackId={track.id} />
 
       {editing ? <TrackFormDialog track={track} onClose={() => setEditing(false)} /> : null}
       {deleting ? (
