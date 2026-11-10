@@ -12,6 +12,15 @@ export function setUnauthorizedHandler(handler: (() => void) | undefined): void 
   unauthorizedHandler = handler
 }
 
+/**
+ * Clears the session and runs the registered handler. Shared with the XHR
+ * upload, which does not go through apiFetch.
+ */
+export function notifyUnauthorized(): void {
+  tokenStore.clear()
+  unauthorizedHandler?.()
+}
+
 function isAbortError(cause: unknown): boolean {
   return (
     typeof cause === 'object' && cause !== null && 'name' in cause && cause.name === 'AbortError'
@@ -49,8 +58,7 @@ async function apiFetch(request: Request): Promise<Response> {
 
   const error = buildApiError(response.status, await response.text(), response.headers)
   if (response.status === 401 && !isLoginRequest(request)) {
-    tokenStore.clear()
-    unauthorizedHandler?.()
+    notifyUnauthorized()
   }
   throw error
 }
