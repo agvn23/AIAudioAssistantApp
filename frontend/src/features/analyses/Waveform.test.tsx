@@ -2,6 +2,7 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { expectNoA11yViolations } from '../../test/a11y'
+import { themeStore } from '../../theme/themeStore'
 import { Waveform } from './Waveform'
 
 const mock = vi.hoisted(() => ({
@@ -10,6 +11,7 @@ const mock = vi.hoisted(() => ({
   on: vi.fn(),
   loadBlob: vi.fn(),
   playPause: vi.fn(),
+  setOptions: vi.fn(),
   destroy: vi.fn(),
 }))
 
@@ -34,12 +36,14 @@ beforeEach(() => {
   mock.loadBlob.mockResolvedValue(undefined)
   mock.playPause.mockReset()
   mock.playPause.mockResolvedValue(undefined)
+  mock.setOptions.mockReset()
   mock.destroy.mockReset()
   mock.create.mockReset()
   mock.create.mockReturnValue({
     on: mock.on,
     loadBlob: mock.loadBlob,
     playPause: mock.playPause,
+    setOptions: mock.setOptions,
     destroy: mock.destroy,
   })
 })
@@ -123,5 +127,50 @@ describe('Waveform', () => {
     emit('ready')
 
     await expectNoA11yViolations(container)
+  })
+
+  it('does not repaint when it first appears', () => {
+    render(<Waveform file={file} />)
+
+    expect(mock.setOptions).not.toHaveBeenCalled()
+  })
+
+  it('repaints the same player when the shown theme changes', () => {
+    render(<Waveform file={file} />)
+
+    act(() => {
+      themeStore.set('dark')
+    })
+
+    expect(mock.create).toHaveBeenCalledTimes(1)
+    expect(mock.destroy).not.toHaveBeenCalled()
+    expect(mock.setOptions).toHaveBeenCalledTimes(1)
+    expect(mock.setOptions).toHaveBeenCalledWith({
+      waveColor: expect.any(String),
+      progressColor: expect.any(String),
+      cursorColor: expect.any(String),
+    })
+  })
+
+  it('does not repaint when the choice changes but the shown theme does not', () => {
+    render(<Waveform file={file} />)
+
+    act(() => {
+      themeStore.set('light')
+    })
+
+    expect(themeStore.resolved()).toBe('light')
+    expect(mock.setOptions).not.toHaveBeenCalled()
+  })
+
+  it('stops repainting after it unmounts', () => {
+    const { unmount } = render(<Waveform file={file} />)
+    unmount()
+
+    act(() => {
+      themeStore.set('dark')
+    })
+
+    expect(mock.setOptions).not.toHaveBeenCalled()
   })
 })

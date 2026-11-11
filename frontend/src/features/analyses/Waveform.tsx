@@ -1,14 +1,23 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import WaveSurfer from 'wavesurfer.js'
 import { Button } from '../../components/Button'
+import { themeStore, type ResolvedTheme } from '../../theme/themeStore'
 import styles from './Waveform.module.css'
 
 type Phase = 'loading' | 'ready' | 'error'
 
-/** wavesurfer needs real colour values, so read the tokens once, with fallbacks. */
+/** wavesurfer needs real colour values, so read the tokens, with fallbacks. */
 function readColor(element: HTMLElement, name: string, fallback: string): string {
   const value = getComputedStyle(element).getPropertyValue(name).trim()
   return value === '' ? fallback : value
+}
+
+function readColors(element: HTMLElement) {
+  return {
+    waveColor: readColor(element, '--color-muted', '#595959'),
+    progressColor: readColor(element, '--color-accent', '#0b57d0'),
+    cursorColor: readColor(element, '--color-text', '#1a1a1a'),
+  }
 }
 
 export interface WaveformProps {
@@ -18,13 +27,15 @@ export interface WaveformProps {
 /**
  * Draws the waveform of a file from this computer and plays it. The file never
  * leaves the browser. Key it by the analysis id: it creates one player for one
- * file and destroys it on unmount.
+ * file and destroys it on unmount. A theme change repaints the same player.
  */
 export function Waveform({ file }: WaveformProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<WaveSurfer | null>(null)
+  const paintedThemeRef = useRef<ResolvedTheme | null>(null)
   const [phase, setPhase] = useState<Phase>('loading')
   const [playing, setPlaying] = useState(false)
+  const theme = useSyncExternalStore(themeStore.subscribe, themeStore.resolved)
 
   useEffect(() => {
     const container = containerRef.current
@@ -34,11 +45,10 @@ export function Waveform({ file }: WaveformProps) {
     const player = WaveSurfer.create({
       container,
       height: 96,
-      waveColor: readColor(container, '--color-muted', '#595959'),
-      progressColor: readColor(container, '--color-accent', '#0b57d0'),
-      cursorColor: readColor(container, '--color-text', '#1a1a1a'),
+      ...readColors(container),
     })
     playerRef.current = player
+    paintedThemeRef.current = themeStore.resolved()
 
     player.on('ready', () => setPhase('ready'))
     player.on('error', () => setPhase('error'))
@@ -56,6 +66,15 @@ export function Waveform({ file }: WaveformProps) {
       player.destroy()
     }
   }, [file])
+
+  useEffect(() => {
+    const player = playerRef.current
+    const container = containerRef.current
+    if (!player || !container) return
+    if (paintedThemeRef.current === theme) return
+    paintedThemeRef.current = theme
+    player.setOptions(readColors(container))
+  }, [theme])
 
   function togglePlay() {
     playerRef.current?.playPause().catch(() => setPlaying(false))
