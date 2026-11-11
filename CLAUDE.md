@@ -63,8 +63,9 @@ Week 2 (API) is complete: slices 1-5 done (config/db/auth, tracks and tags, uplo
 Week 3 (frontend), slice 0 is done and merged: Vite + React + strict TypeScript 5.9 in frontend/, Vitest + React Testing Library + MSW 2, Prettier, typed client generated from schema/openapi.json (npm run api:types), ApiError normalisation, sessionStorage token store, router shell and a throwaway health page. 26 tests passing. 
 Week 3 (frontend): slice 0 done. Slice 1 (auth) done and merged: login, register (auto sign-in), route guard, session-expiry handling, account page with delete-account dialog, shared form components.
 Week 3 (frontend): slice 2 (tracks) done: /tracks list with URL-driven search, genre, tag and paging, tag chips, create/edit/delete dialogs, /tracks/:id detail page.
-Week 3 (frontend): slice 3 (upload + polling) done on frontend/slice-3-upload: XHR upload with progress and validation, version list on /tracks/:id with polling, /analyses/:id version page (status, edit, delete), waveform from the local file in-session only. 526 tests passing in 50 test files; typecheck, lint, format:check and build are clean.
-Next: slice 4 (results: metrics cards, spectrum chart, AI feedback). Slices: 4 results, 5 polish + docs.
+Week 3 (frontend): slice 3 (upload + polling) done and merged (PR #10): XHR upload with progress and validation, version list on /tracks/:id with polling, /analyses/:id version page (status, edit, delete), waveform from the local file in-session only.
+Week 3 (frontend): slice 4 (results) done on frontend/slice-4-results: runtime parsers for metrics and feedback, metrics cards, hand-written SVG spectrum chart with a hidden table, feedback cards with generate and regenerate. 711 tests passing in 64 test files; typecheck, lint, format:check and build are clean.
+Next: slice 5 (polish and docs): theme switch (system, light, dark), real contrast and VoiceOver checks, the open items in docs/DECISIONS.md, README screenshots, deployment notes.
 
 ## Plan
 1. Analysis engine + metrics JSON (done)

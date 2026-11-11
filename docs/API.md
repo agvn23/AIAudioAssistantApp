@@ -116,7 +116,7 @@ Background tasks are enough for v1. If analysis gets slow or you need retries, m
 
 ## AI feedback
 - Input: the stored metrics JSON plus track context (genre and target platform read from the track at call time, stage from the analysis row). Nothing else, never the audio, file name or notes.
-- Output: JSON validated with Pydantic, for example `{summary, items: [{area, severity, observation, suggestion}]}`, stored in `analyses.feedback`. Every item cites metrics by path and value; the server verifies them against the stored metrics, retries once, then answers 502.
+- Output: JSON validated with Pydantic (`feedback/schemas.py`), stored in `analyses.feedback`: `{summary, items, caveats, meta}`. Each item is `{area, priority, observation, suggestion, evidence}`. `area` is one of loudness, dynamics, tempo, key, spectrum, stereo, overall; `priority` is high, medium or low; `evidence` is a list of `{metric, value}` (path into the metrics JSON, or `reference.integrated_lufs_difference` / `reference.true_peak_over_ceiling_db`, computed per call from the platform table, positive meaning louder or higher than the target). `meta` is added by the server: `{model, generated_at, context_used: {genre, target_platform, stage}, feedback_schema_version}`. The server verifies every cited path and value, retries once, then answers 502.
 - Environment: `FEEDBACK_PROVIDER`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `FEEDBACK_TIMEOUT_SECONDS`, `FEEDBACK_MAX_TOKENS`.
 - A failed feedback call never changes the analysis or its previous feedback. Errors carry the provider code (`not_configured`, `timeout`, `provider_error`, `invalid_output`).
 
