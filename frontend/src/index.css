@@ -24,8 +24,18 @@
   --text-sm: 0.875rem;
 }
 
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+/*
+ * The dark tokens appear twice: here for "system" mode with a dark OS, and in
+ * the data-theme='dark' block below for an explicit choice. Plain CSS cannot
+ * share them; src/theme/tokens.test.ts fails if the two blocks differ.
+ */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
     --color-bg: #121212;
     --color-surface: #1e1f22;
     --color-text: #ececec;
@@ -38,6 +48,21 @@
     --color-border: #3a3d42;
     --color-border-strong: #8a8f98;
   }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-bg: #121212;
+  --color-surface: #1e1f22;
+  --color-text: #ececec;
+  --color-muted: #a8a8a8;
+  --color-accent: #8ab4f8;
+  --color-on-accent: #0b1d3d;
+  --color-error: #f2b8b5;
+  --color-error-bg: #3b1f1d;
+  --color-on-error: #3b0a08;
+  --color-border: #3a3d42;
+  --color-border-strong: #8a8f98;
 }
 
 * {
