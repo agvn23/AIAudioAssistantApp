@@ -85,6 +85,17 @@ A running log of project decisions. Add new entries at the bottom of the table w
 | 2026-11-11 | Frontend (slice 3): the waveform uses `wavesurfer.js` 8.0.5, loaded lazily, drawn from the `File` chosen in the upload dialog and kept only in tab memory (`sessionFiles.ts`). It is dropped on reload, on sign-out or a 401, and when the version is deleted | The server never keeps the audio. The page says so when no file is available, and also when the browser cannot decode the file |
 | 2026-11-11 | Frontend (slice 3): the waveform has a Play/Pause button; seeking works with the mouse only; colours are read once from the CSS tokens when the player is created | Keyboard seeking and repainting on a theme change are polish items |
 | 2026-11-11 | Frontend (slice 3): tests replace XMLHttpRequest with a small fake for upload progress and abort, and replace wavesurfer with a fake. Polling tests use real timers with a 20 ms interval | jsdom plus MSW is not reliable for upload progress, and wavesurfer cannot run in jsdom. The real upload and drawing are browser checks |
+| 2026-11-11 | Frontend (slice 4): `parseMetrics` and `parseFeedback` check the free-form `metrics` and `feedback` objects at runtime. A missing or wrong required part gives `null`; a wrong optional part is dropped. One bad feedback item makes the whole feedback `null` | The generated types describe both as plain objects. The server already verified the feedback, so a bad item means the contract changed, and dropping it could hide the high-priority one |
+| 2026-11-11 | Frontend (slice 4): numbers are shown as stored (`formatNumber`, at most 2 decimals, no extra rounding). Confidence shows as a percentage and the stored value, for example `81% (0.81)` | Cards then match the numbers the AI quotes |
+| 2026-11-11 | Frontend (slice 4): test fixtures (`src/test/fixtures/analysis.ts`) are made up, not measurements of a real track | Real samples stay in the git-ignored `private/` folder |
+| 2026-11-11 | Frontend (slice 4): feedback `area` and `priority` stay plain strings with a capitalised fallback label. Evidence paths are kept as text and not checked against the metrics | A value the server adds later must not hide an item. `reference.*` paths are computed per call and are not in the stored metrics |
+| 2026-11-11 | Frontend (slice 4): the platform reference table stays on the server and is not copied. The UI explains `reference.*` evidence once: positive means louder or higher than the target | One source of truth |
+| 2026-11-11 | Frontend (slice 4): dynamic range is labelled approximate, tempo and key are one card labelled as suggestions with confidence, and rows for missing optional fields are left out | Matches the 2026-10-27 decisions. Nothing is guessed or filled in |
+| 2026-11-11 | Frontend (slice 4): the spectrum is a hand-written SVG bar chart, one bar per band on a categorical axis, with 0 dB (pink noise) as the base line and a visually hidden data table | Bar width does not map to Hz because values are energy per octave. Direction does not depend on colour |
+| 2026-11-11 | Frontend (slice 4): results show only for a finished version with readable metrics. Unreadable metrics show a message and no feedback button | Feedback is written from the measurements |
+| 2026-11-11 | Frontend (slice 4): generate and regenerate use one mutation with `retry: false`. It writes the returned analysis into the detail cache. A failure leaves the old feedback on screen and shows an alert. Own copy only for `conflict` and `rate_limited` (with the Retry-After wait); other codes use the shared copy | Every attempt costs feedback budget and model quota. Matches the server rule that a failed call changes nothing |
+| 2026-11-11 | Frontend (slice 4): the "feedback is out of date" hint compares the stage only. The version page does not load the track | Genre and platform live on the track. An extra request would need handlers in every page test. A later genre or platform change is not detected |
+| 2026-11-11 | Frontend (slice 4): feedback priority is written out ("High priority"); the coloured left border is extra | Never colour alone |
 
 ## Design principles
 
@@ -101,10 +112,12 @@ A running log of project decisions. Add new entries at the bottom of the table w
 - Deployment: where it will run, which reverse proxy enforces the body limit, and whether a single process is still enough (the rate limiter, analysis slots and background tasks all assume one).
 - Database: SQLite to start; move to Postgres only if needed.
 - File retention: audio is deleted after analysis, only metrics are kept. Decide whether stored metrics and feedback should expire.
+- Gemini free tier returned a 503 on 2026-11-11 (shown as 502 `provider_error`), and a retry worked. The cause is not determined (overload, or a stray space in `GEMINI_MODEL=`, since fixed). If it recurs, consider a different model and distinct frontend copy for a transient provider failure.
 
 ## Frontend: manual checks and polish (open)
 
 Checks that jsdom cannot do, to run in a browser against the running API:
+- Slice 4: the version page was checked by eye in light, dark and a narrow window (cards wrap, chart scrolls sideways). Still to check: VoiceOver with the `list-style: none` lists in the feedback cards, and contrast of the new cards, chart and feedback (`.note`, `.term`, `.meta`, `.axisText`, `.bandRange`, the badge, the borders and bars on the surface).
 
 - A real upload: the CORS preflight for the XHR (the `Authorization` header), `Retry-After` readable on a 429, the progress bar, and the version moving from pending through running to done at the 2 s pace.
 - Native dialog behaviour: modal focus, Esc, focus returning to the opener.
@@ -124,5 +137,12 @@ Polish tasks:
 - Sanitized test fixtures (the real samples stay in `frontend/src/test/fixtures/private/`, git-ignored, as is `*.wav`).
 - Review `npm audit` and the `allowScripts` warning.
 - A backend script to dump `openapi.json`, if a type the generated client lacks is needed.
+- Slice 5 feature: a system, light and dark theme switch saved in the browser. It needs a `data-theme` override in `index.css` (tokens now follow only `prefers-color-scheme`) and the waveform repainting, since it reads its colours once.
+- One shared date formatter (`formatGeneratedAt` and `formatDateTime` in `AnalysisPage.tsx` duplicate each other) and a shared parse-helpers module (`metrics.ts` and `feedback.ts` repeat `isRecord` and the readers).
+- `formatBandName` is also used for non-band text; give it a more general name.
+- A rate-limit countdown on the feedback button, like the upload dialog has.
+- Stale-feedback detection for genre and platform, which needs the track.
+- Distinct copy for a transient provider failure (502 `provider_error`).
+- Fix the `GEMINI_MODEL=` value in `.env` and check `.env.example` for the same stray space.
 
-Later slices: 4 results (metrics cards, hand-written SVG spectrum chart with a hidden data table, honest labelling: dynamic range is an approximation, not DR14; tempo and key are suggestions with confidence; feedback cards with generate and regenerate), 5 polish and docs.
+Later slices: 4 results is done (metrics cards, SVG spectrum chart, feedback cards with generate and regenerate), 5 polish and docs, including the theme switch above.

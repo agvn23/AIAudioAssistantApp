@@ -44,3 +44,19 @@ export async function updateAnalysis(id: number, body: AnalysisUpdate): Promise<
 export async function deleteAnalysis(id: number): Promise<void> {
   await api.DELETE('/analyses/{analysis_id}', { params: { path: { analysis_id: id } } })
 }
+
+/**
+ * Generates AI feedback for a finished version, or regenerates it. The server does
+ * this synchronously (it calls the model and verifies the output), so the request can
+ * take a while. Returns the whole updated analysis. A failed call leaves the stored
+ * feedback untouched. Throws ApiError with one of: conflict (not finished yet),
+ * rate_limited (see retryAfter), not_configured, timeout, provider_error,
+ * invalid_output. It takes no signal because TanStack Query does not give one to
+ * mutations.
+ */
+export async function createFeedback(id: number): Promise<Analysis> {
+  const { data, response } = await api.POST('/analyses/{analysis_id}/feedback', {
+    params: { path: { analysis_id: id } },
+  })
+  return requireData(data, response.status)
+}
