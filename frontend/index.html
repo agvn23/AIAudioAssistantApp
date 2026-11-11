@@ -4,7 +4,19 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>vite-project</title>
+    <title>AI Audio Assistant</title>
+    <script>
+      // Applies a saved light or dark choice before the first paint, so a reload
+      // does not flash the wrong theme. Keep it in step with src/theme/themeStore.ts.
+      try {
+        var saved = localStorage.getItem('aaa.theme')
+        if (saved === 'light' || saved === 'dark') {
+          document.documentElement.setAttribute('data-theme', saved)
+        }
+      } catch (error) {
+        // Storage unavailable: the system setting applies until the app starts.
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
