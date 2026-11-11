@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll } from 'vitest'
 import { tokenStore } from '../api/token'
+import { themeStore } from '../theme/themeStore'
 import { server } from './server'
 
 // jsdom has the <dialog> element but, as far as I know, not showModal() or close().
@@ -30,6 +31,7 @@ afterEach(() => {
   cleanup()
   server.resetHandlers()
   tokenStore.clear()
+  themeStore.clear()
 })
 
 afterAll(() => server.close())

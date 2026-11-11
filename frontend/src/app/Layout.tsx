@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router'
 import { Button } from '../components/Button'
 import { setPendingReason } from '../features/auth/pendingReason'
 import { useAuth } from '../features/auth/useAuth'
+import { ThemeSwitch } from '../theme/ThemeSwitch'
 import styles from './Layout.module.css'
 
 export function Layout() {
@@ -26,21 +27,24 @@ export function Layout() {
           AI Audio Assistant
         </Link>
         {auth.status === 'signedIn' ? (
-          <>
-            <nav aria-label="Main" className={styles.nav}>
-              <NavLink to="/tracks" className={styles.link}>
-                Tracks
-              </NavLink>
-              <NavLink to="/account" className={styles.link}>
-                Account
-              </NavLink>
-            </nav>
+          <nav aria-label="Main" className={styles.nav}>
+            <NavLink to="/tracks" className={styles.link}>
+              Tracks
+            </NavLink>
+            <NavLink to="/account" className={styles.link}>
+              Account
+            </NavLink>
+          </nav>
+        ) : null}
+        <div className={styles.tools}>
+          <ThemeSwitch />
+          {auth.status === 'signedIn' ? (
             <div className={styles.session}>
               <span className={styles.email}>{auth.user?.email}</span>
               <Button onClick={logOut}>Log out</Button>
             </div>
-          </>
-        ) : null}
+          ) : null}
+        </div>
       </header>
       <main id="main" tabIndex={-1} className={styles.main}>
         <Outlet />
