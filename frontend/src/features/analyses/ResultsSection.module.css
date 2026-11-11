@@ -1,0 +1,13 @@
+.section {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.alert {
+  margin: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text);
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius);
+}

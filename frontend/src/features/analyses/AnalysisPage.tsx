@@ -9,6 +9,7 @@ import { DeleteVersionDialog } from './DeleteVersionDialog'
 import { EditVersionDialog } from './EditVersionDialog'
 import { STAGE_LABEL, STATUS_LABEL } from './labels'
 import { forgetFile, getRememberedFile } from './sessionFiles'
+import { ResultsSection } from './ResultsSection'
 import { useAnalysis } from './useAnalyses'
 
 // Loaded only when there is a local file to draw, so wavesurfer stays out of the main bundle.
@@ -158,10 +159,7 @@ function VersionDetail({ id }: { id: number }) {
 
       <WaveformSection analysisId={analysis.id} />
 
-      <section aria-labelledby="results-heading" className={styles.later}>
-        <h2 id="results-heading">Results</h2>
-        <p>Measurements and AI feedback are coming in a later slice.</p>
-      </section>
+      <ResultsSection analysis={analysis} />
 
       {editing ? <EditVersionDialog analysis={analysis} onClose={() => setEditing(false)} /> : null}
       {deleting ? (
