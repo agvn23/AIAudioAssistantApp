@@ -1,3 +1,4 @@
+import { isRecord } from '../lib/parse'
 import type { FieldError } from './types'
 
 // Stable codes from docs/API.md. The OpenAPI spec only documents 422 and 500,
@@ -83,10 +84,6 @@ export class ApiError extends Error {
 
 export interface HeaderReader {
   get(name: string): string | null
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function isFieldError(value: unknown): value is FieldError {
