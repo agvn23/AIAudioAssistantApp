@@ -148,4 +148,44 @@ describe('FeedbackSection', () => {
 
     await expectNoA11yViolations(container)
   })
+
+  it('disables the button with a countdown after a rate limit', async () => {
+    failFeedback(429, 'rate_limited', { 'Retry-After': '30' })
+    const { user } = renderSection()
+
+    await user.click(await screen.findByRole('button', { name: 'Generate feedback' }))
+
+    expect(await screen.findByRole('button', { name: 'Try again in 30 s' })).toBeDisabled()
+  })
+
+  it('offers the button again when the wait is over', async () => {
+    failFeedback(429, 'rate_limited', { 'Retry-After': '1' })
+    const { user } = renderSection()
+
+    await user.click(await screen.findByRole('button', { name: 'Generate feedback' }))
+    await screen.findByRole('button', { name: /Try again in/ })
+
+    expect(
+      await screen.findByRole('button', { name: 'Generate feedback' }, { timeout: 4000 }),
+    ).toBeEnabled()
+  })
+
+  it('keeps the button enabled after a failure that has no wait', async () => {
+    failFeedback(504, 'timeout')
+    const { user } = renderSection()
+
+    await user.click(await screen.findByRole('button', { name: 'Generate feedback' }))
+    await screen.findByRole('alert')
+
+    expect(screen.getByRole('button', { name: 'Generate feedback' })).toBeEnabled()
+  })
+
+  it('says a provider failure is often temporary', async () => {
+    failFeedback(502, 'provider_error')
+    const { user } = renderSection()
+
+    await user.click(await screen.findByRole('button', { name: 'Generate feedback' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/often temporary/)
+  })
 })

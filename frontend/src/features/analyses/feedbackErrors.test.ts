@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ApiError, describeError } from '../../api/errors'
-import { describeFeedbackError } from './feedbackErrors'
+import { describeFeedbackError, feedbackRetryDelay } from './feedbackErrors'
 
 function apiError(status: number, code: string, retryAfter?: number): ApiError {
   return new ApiError({ status, code, message: 'Server message', retryAfter })
@@ -27,9 +27,16 @@ describe('describeFeedbackError', () => {
     expect(describeFeedbackError(error)).toBe(describeError(error))
   })
 
+  it('says a provider failure is often temporary and that nothing was changed', () => {
+    const text = describeFeedbackError(apiError(502, 'provider_error'))
+
+    expect(text).toMatch(/often temporary/)
+    expect(text).toMatch(/unchanged/)
+    expect(text).toMatch(/try again/)
+  })
+
   it.each<[number, string]>([
     [504, 'timeout'],
-    [502, 'provider_error'],
     [502, 'invalid_output'],
     [503, 'not_configured'],
   ])('uses the shared copy for %i %s', (status, code) => {
@@ -42,5 +49,24 @@ describe('describeFeedbackError', () => {
     const error = new Error('boom')
 
     expect(describeFeedbackError(error)).toBe(describeError(error))
+  })
+})
+
+describe('feedbackRetryDelay', () => {
+  it('returns the wait for a rate limit', () => {
+    expect(feedbackRetryDelay(apiError(429, 'rate_limited', 30))).toBe(30)
+  })
+
+  it('returns undefined for a rate limit without Retry-After', () => {
+    expect(feedbackRetryDelay(apiError(429, 'rate_limited'))).toBeUndefined()
+  })
+
+  it('returns undefined for other codes, even with a Retry-After', () => {
+    expect(feedbackRetryDelay(apiError(503, 'server_busy', 5))).toBeUndefined()
+    expect(feedbackRetryDelay(apiError(504, 'timeout'))).toBeUndefined()
+  })
+
+  it('returns undefined for something that is not an ApiError', () => {
+    expect(feedbackRetryDelay(new Error('boom'))).toBeUndefined()
   })
 })

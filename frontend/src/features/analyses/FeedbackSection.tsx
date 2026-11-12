@@ -1,21 +1,26 @@
 import type { Analysis } from '../../api/types'
 import { Button } from '../../components/Button'
+import { formatWait } from '../auth/formatWait'
+import { useCountdown } from '../auth/useCountdown'
 import { parseFeedback } from '../results/feedback'
 import { FeedbackCards } from '../results/FeedbackCards'
-import { describeFeedbackError } from './feedbackErrors'
+import { describeFeedbackError, feedbackRetryDelay } from './feedbackErrors'
 import styles from './FeedbackSection.module.css'
 import { useCreateFeedback } from './useCreateFeedback'
 
 /**
  * The AI feedback of a finished version, with the button that generates or
- * regenerates it. A failed call leaves the stored feedback on screen. The
- * "stale" hint compares the stage only: genre and platform live on the track,
- * which this page does not load.
+ * regenerates it. A failed call leaves the stored feedback on screen. After a
+ * rate limit the button waits out the Retry-After. The "stale" hint compares
+ * the stage only: genre and platform live on the track, which this page does
+ * not load.
  */
 export function FeedbackSection({ analysis }: { analysis: Analysis }) {
   const create = useCreateFeedback()
+  const countdown = useCountdown()
   const stored = analysis.feedback ?? null
   const feedback = stored === null ? null : parseFeedback(stored)
+  const waiting = countdown.secondsLeft > 0
 
   const stale =
     feedback !== null &&
@@ -23,10 +28,19 @@ export function FeedbackSection({ analysis }: { analysis: Analysis }) {
     (feedback.meta.context_used.stage ?? null) !== (analysis.stage ?? null)
 
   function generate() {
-    create.mutate({ id: analysis.id })
+    create.mutate(
+      { id: analysis.id },
+      {
+        onError: (error) => {
+          const delay = feedbackRetryDelay(error)
+          if (delay !== undefined) countdown.start(delay)
+        },
+      },
+    )
   }
 
   let buttonLabel = stored === null ? 'Generate feedback' : 'Regenerate feedback'
+  if (waiting) buttonLabel = `Try again in ${formatWait(countdown.secondsLeft)}`
   if (create.isPending) buttonLabel = 'Generating…'
 
   let statusText = ''
@@ -56,7 +70,7 @@ export function FeedbackSection({ analysis }: { analysis: Analysis }) {
       ) : null}
 
       <div className={styles.actions}>
-        <Button onClick={generate} disabled={create.isPending}>
+        <Button onClick={generate} disabled={create.isPending || waiting}>
           {buttonLabel}
         </Button>
       </div>
