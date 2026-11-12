@@ -47,8 +47,12 @@
   list-style: none;
 }
 
+/*
+ * Dimmed while the next page loads. Do not go below 0.9: at 0.85 muted text on
+ * the light surface drops to 4.48:1, under the 4.5:1 minimum. See dimmedList.test.ts.
+ */
 .list[aria-busy='true'] {
-  opacity: 0.6;
+  opacity: 0.9;
 }
 
 .item {
