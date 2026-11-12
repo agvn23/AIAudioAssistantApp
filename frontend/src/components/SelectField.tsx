@@ -1,5 +1,5 @@
 import type { ComponentPropsWithRef } from 'react'
-import styles from './TextField.module.css'
+import styles from './Field.module.css'
 
 export interface SelectOption {
   value: string
