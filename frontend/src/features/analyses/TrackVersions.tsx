@@ -3,18 +3,13 @@ import { Link } from 'react-router'
 import { describeError } from '../../api/errors'
 import type { Analysis, AnalysisSummary } from '../../api/types'
 import { Button } from '../../components/Button'
+import { formatDate } from '../../lib/dates'
 import { describeAnalysisError } from './analysisErrors'
 import { STAGE_LABEL, STATUS_LABEL } from './labels'
 import styles from './TrackVersions.module.css'
 import { UploadVersionDialog } from './UploadVersionDialog'
 import { useTrackAnalyses } from './useAnalyses'
 import { rememberFile } from './sessionFiles'
-
-function formatDate(iso: string): string {
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return iso
-  return date.toLocaleDateString(undefined, { dateStyle: 'medium' })
-}
 
 function VersionRow({ version }: { version: AnalysisSummary }) {
   return (

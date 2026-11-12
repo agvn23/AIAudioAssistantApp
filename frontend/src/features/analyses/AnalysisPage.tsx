@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { ApiError, describeError } from '../../api/errors'
 import type { Analysis } from '../../api/types'
 import { Button } from '../../components/Button'
+import { formatDateTime } from '../../lib/dates'
 import { describeAnalysisError } from './analysisErrors'
 import styles from './AnalysisPage.module.css'
 import { DeleteVersionDialog } from './DeleteVersionDialog'
@@ -20,12 +21,6 @@ function parseId(raw: string | undefined): number | null {
   if (raw === undefined || !/^\d+$/.test(raw)) return null
   const id = Number(raw)
   return Number.isSafeInteger(id) && id > 0 ? id : null
-}
-
-function formatDateTime(iso: string): string {
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return iso
-  return date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
 function statusMessage(analysis: Analysis): string {
