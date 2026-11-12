@@ -10,6 +10,8 @@
  * or filled in, and an unknown schema_version is still read by its shape.
  */
 
+import { isRecord, readNumber } from '../../lib/parse'
+
 export interface FileInfo {
   name: string
   format?: string
@@ -98,14 +100,6 @@ export interface Metrics {
   stereo: Stereo
   context?: MetricsContext
   warnings: MetricsWarning[]
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function readNumber(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
 function readString(value: unknown): string | undefined {
