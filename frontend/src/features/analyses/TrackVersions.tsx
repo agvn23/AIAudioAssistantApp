@@ -1,26 +1,14 @@
 import { useId, useState } from 'react'
 import { Link } from 'react-router'
 import { describeError } from '../../api/errors'
-import type { Analysis, AnalysisStatus, AnalysisSummary, Stage } from '../../api/types'
+import type { Analysis, AnalysisSummary } from '../../api/types'
 import { Button } from '../../components/Button'
 import { describeAnalysisError } from './analysisErrors'
+import { STAGE_LABEL, STATUS_LABEL } from './labels'
 import styles from './TrackVersions.module.css'
 import { UploadVersionDialog } from './UploadVersionDialog'
 import { useTrackAnalyses } from './useAnalyses'
 import { rememberFile } from './sessionFiles'
-
-const STATUS_LABEL: Record<AnalysisStatus, string> = {
-  pending: 'Waiting to start',
-  running: 'Analysing',
-  done: 'Done',
-  failed: 'Failed',
-}
-
-const STAGE_LABEL: Record<Stage, string> = {
-  demo: 'Demo',
-  mix: 'Mix',
-  master: 'Master',
-}
 
 function formatDate(iso: string): string {
   const date = new Date(iso)

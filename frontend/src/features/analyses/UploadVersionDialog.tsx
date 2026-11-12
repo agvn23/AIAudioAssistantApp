@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react'
 import { useForm } from 'react-hook-form'
-import type { Analysis, Stage } from '../../api/types'
+import type { Analysis } from '../../api/types'
 import { Button } from '../../components/Button'
 import { ErrorSummary, type ErrorSummaryItem } from '../../components/ErrorSummary'
 import { SelectField } from '../../components/SelectField'
@@ -8,6 +8,7 @@ import { SubmitButton } from '../../components/SubmitButton'
 import { TextField } from '../../components/TextField'
 import { formatWait } from '../auth/formatWait'
 import { useCountdown } from '../auth/useCountdown'
+import { STAGE_OPTIONS, toStage } from './labels'
 import { describeUploadFailure, isLabelOnlyValidation, uploadRetryDelay } from './uploadErrors'
 import { getMaxUploadBytes } from './uploadLimit'
 import { ACCEPT_ATTRIBUTE, formatBytes, validateAudioFile } from './uploadRules'
@@ -21,19 +22,6 @@ interface FormFields {
 
 const FILE_ID = 'upload-file'
 const LABEL_ID = 'upload-label'
-
-const STAGES: readonly Stage[] = ['demo', 'mix', 'master']
-
-const STAGE_OPTIONS = [
-  { value: '', label: 'Not set' },
-  { value: 'demo', label: 'Demo' },
-  { value: 'mix', label: 'Mix' },
-  { value: 'master', label: 'Master' },
-]
-
-function toStage(value: string): Stage | null {
-  return STAGES.find((stage) => stage === value) ?? null
-}
 
 function isAbortError(cause: unknown): boolean {
   return (
