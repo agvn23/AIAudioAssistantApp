@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import { formatBandName, formatDb, formatHz, formatNumber } from './format'
+import { formatIdentifier, formatDb, formatHz, formatNumber } from './format'
 import type { Spectrum } from './metrics'
 import styles from './SpectrumChart.module.css'
 import { barFor, formatBandRange, niceScale, yFor, type Plot } from './spectrumLayout'
@@ -102,7 +102,7 @@ export function SpectrumChart({ spectrum }: { spectrum: Spectrum }) {
                   className={styles.bar}
                 />
                 <text x={centre} y={bottom + 20} textAnchor="middle" className={styles.bandName}>
-                  {formatBandName(band.name)}
+                  {formatIdentifier(band.name)}
                 </text>
                 <text x={centre} y={bottom + 36} textAnchor="middle" className={styles.bandRange}>
                   {formatBandRange(band.low_hz, band.high_hz)}
@@ -129,7 +129,7 @@ export function SpectrumChart({ spectrum }: { spectrum: Spectrum }) {
           <tbody>
             {bands.map((band) => (
               <tr key={`${band.name}-${band.low_hz}`}>
-                <th scope="row">{formatBandName(band.name)}</th>
+                <th scope="row">{formatIdentifier(band.name)}</th>
                 <td>{formatBandRange(band.low_hz, band.high_hz)}</td>
                 <td>{formatDb(band.relative_db)}</td>
               </tr>

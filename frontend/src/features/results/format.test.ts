@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  formatBandName,
+  formatIdentifier,
   formatBpm,
   formatChannels,
   formatDb,
@@ -101,15 +101,15 @@ describe('formatKey', () => {
   })
 })
 
-describe('formatBandName', () => {
+describe('formatIdentifier', () => {
   it('capitalises the first letter and replaces underscores', () => {
-    expect(formatBandName('sub')).toBe('Sub')
-    expect(formatBandName('low_mid')).toBe('Low mid')
-    expect(formatBandName('high_mid')).toBe('High mid')
+    expect(formatIdentifier('sub')).toBe('Sub')
+    expect(formatIdentifier('low_mid')).toBe('Low mid')
+    expect(formatIdentifier('high_mid')).toBe('High mid')
   })
 
   it('returns an empty name unchanged', () => {
-    expect(formatBandName('')).toBe('')
+    expect(formatIdentifier('')).toBe('')
   })
 })
 
