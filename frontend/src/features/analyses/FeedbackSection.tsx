@@ -6,14 +6,15 @@ import { parseFeedback } from '../results/feedback'
 import { FeedbackCards } from '../results/FeedbackCards'
 import { describeFeedbackError, feedbackRetryDelay } from './feedbackErrors'
 import styles from './FeedbackSection.module.css'
+import { StaleTrackHint } from './StaleTrackHint'
 import { useCreateFeedback } from './useCreateFeedback'
 
 /**
  * The AI feedback of a finished version, with the button that generates or
  * regenerates it. A failed call leaves the stored feedback on screen. After a
- * rate limit the button waits out the Retry-After. The "stale" hint compares
- * the stage only: genre and platform live on the track, which this page does
- * not load.
+ * rate limit the button waits out the Retry-After. Two hints say when the
+ * feedback is out of date: the stage comes from this version, the genre and
+ * platform from the track (StaleTrackHint).
  */
 export function FeedbackSection({ analysis }: { analysis: Analysis }) {
   const create = useCreateFeedback()
@@ -67,6 +68,9 @@ export function FeedbackSection({ analysis }: { analysis: Analysis }) {
           The stage of this version was changed after this feedback was written. Regenerate it to
           match.
         </p>
+      ) : null}
+      {feedback !== null && feedback.meta !== undefined ? (
+        <StaleTrackHint trackId={analysis.track_id} used={feedback.meta.context_used} />
       ) : null}
 
       <div className={styles.actions}>

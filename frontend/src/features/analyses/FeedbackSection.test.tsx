@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
@@ -8,6 +8,7 @@ import { createQueryClient } from '../../app/queryClient'
 import { expectNoA11yViolations } from '../../test/a11y'
 import { sampleFeedback, sampleMetrics } from '../../test/fixtures/analysis'
 import { server } from '../../test/server'
+import { trackKeys } from '../tracks/queryKeys'
 import { FeedbackSection } from './FeedbackSection'
 import { useAnalysis } from './useAnalyses'
 
@@ -25,7 +26,20 @@ const base = {
   feedback: null as unknown,
 }
 
+/** The track the sample feedback was written for: house, spotify. */
+const track = {
+  id: 3,
+  title: 'Night Drive',
+  genre: 'house',
+  target_platform: 'spotify',
+  notes: null,
+  tags: [],
+  created_at: '2026-11-05T10:00:00Z',
+  updated_at: '2026-11-05T10:00:00Z',
+}
+
 const summaryText = /A balanced mix with a slightly strong low end/
+const trackChangeHint = /of this track (was|were) changed/
 
 /** Reads the version like the page does, so a new analysis in the cache reaches the section. */
 function Harness() {
@@ -33,15 +47,18 @@ function Harness() {
   return query.data ? <FeedbackSection analysis={query.data} /> : <p>Loading</p>
 }
 
-function renderSection(body: object = base) {
-  server.use(http.get(`${API_BASE_URL}/analyses/7`, () => HttpResponse.json(body)))
+function renderSection(body: object = base, trackBody: object = track) {
+  server.use(
+    http.get(`${API_BASE_URL}/analyses/7`, () => HttpResponse.json(body)),
+    http.get(`${API_BASE_URL}/tracks/3`, () => HttpResponse.json(trackBody)),
+  )
   const queryClient = createQueryClient()
   const view = render(
     <QueryClientProvider client={queryClient}>
       <Harness />
     </QueryClientProvider>,
   )
-  return { container: view.container, user: userEvent.setup() }
+  return { container: view.container, user: userEvent.setup(), queryClient }
 }
 
 function failFeedback(status: number, code: string, headers: Record<string, string> = {}) {
@@ -50,6 +67,13 @@ function failFeedback(status: number, code: string, headers: Record<string, stri
       HttpResponse.json({ error: { code, message: 'Server message' } }, { status, headers }),
     ),
   )
+}
+
+/** Lets queued query updates reach the screen before a "nothing is shown" check. */
+async function flush() {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 20))
+  })
 }
 
 describe('FeedbackSection', () => {
@@ -187,5 +211,79 @@ describe('FeedbackSection', () => {
     await user.click(await screen.findByRole('button', { name: 'Generate feedback' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/often temporary/)
+  })
+
+  it('hints that the feedback is out of date when the genre of the track was changed', async () => {
+    renderSection({ ...base, feedback: sampleFeedback }, { ...track, genre: 'techno' })
+
+    expect(await screen.findByText(/The genre of this track was changed/)).toBeInTheDocument()
+  })
+
+  it('hints that the feedback is out of date when the platform of the track was changed', async () => {
+    renderSection({ ...base, feedback: sampleFeedback }, { ...track, target_platform: 'tidal' })
+
+    expect(
+      await screen.findByText(/The target platform of this track was changed/),
+    ).toBeInTheDocument()
+  })
+
+  it('names both when the genre and the platform were changed', async () => {
+    renderSection(
+      { ...base, feedback: sampleFeedback },
+      { ...track, genre: 'techno', target_platform: 'tidal' },
+    )
+
+    expect(
+      await screen.findByText(/The genre and target platform of this track were changed/),
+    ).toBeInTheDocument()
+  })
+
+  it('has no track hint when the genre and the platform are as they were', async () => {
+    const { queryClient } = renderSection({ ...base, feedback: sampleFeedback })
+    await screen.findByText(summaryText)
+    await waitFor(() => expect(queryClient.getQueryData(trackKeys.detail(3))).toBeDefined())
+    await flush()
+
+    expect(screen.queryByText(trackChangeHint)).not.toBeInTheDocument()
+  })
+
+  it('ignores spacing that the server cleans away', async () => {
+    const feedback = {
+      ...sampleFeedback,
+      meta: {
+        ...sampleFeedback.meta,
+        context_used: { genre: 'deep house', target_platform: 'spotify', stage: 'mix' },
+      },
+    }
+    const { queryClient } = renderSection(
+      { ...base, feedback },
+      { ...track, genre: '  deep   house ' },
+    )
+    await screen.findByText(summaryText)
+    await waitFor(() => expect(queryClient.getQueryData(trackKeys.detail(3))).toBeDefined())
+    await flush()
+
+    expect(screen.queryByText(trackChangeHint)).not.toBeInTheDocument()
+  })
+
+  it('shows no track hint, and keeps the feedback, when the track cannot be loaded', async () => {
+    const { queryClient } = renderSection({ ...base, feedback: sampleFeedback })
+    // Added before the track is requested, so it comes first.
+    server.use(
+      http.get(`${API_BASE_URL}/tracks/3`, () =>
+        HttpResponse.json(
+          { error: { code: 'not_found', message: 'Track not found' } },
+          { status: 404 },
+        ),
+      ),
+    )
+    await screen.findByText(summaryText)
+    await waitFor(() =>
+      expect(queryClient.getQueryState(trackKeys.detail(3))?.status).toBe('error'),
+    )
+    await flush()
+
+    expect(screen.queryByText(trackChangeHint)).not.toBeInTheDocument()
+    expect(screen.getByText(summaryText)).toBeInTheDocument()
   })
 })

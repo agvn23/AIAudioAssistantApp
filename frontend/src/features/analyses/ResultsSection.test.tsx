@@ -1,10 +1,13 @@
 import { QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
+import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
+import { API_BASE_URL } from '../../api/client'
 import type { Analysis } from '../../api/types'
 import { createQueryClient } from '../../app/queryClient'
 import { expectNoA11yViolations } from '../../test/a11y'
 import { sampleFeedback, sampleMetrics } from '../../test/fixtures/analysis'
+import { server } from '../../test/server'
 import { ResultsSection } from './ResultsSection'
 
 const done: Analysis = {
@@ -21,7 +24,19 @@ const done: Analysis = {
   feedback: sampleFeedback,
 }
 
+const track = {
+  id: 3,
+  title: 'Night Drive',
+  genre: 'house',
+  target_platform: 'spotify',
+  notes: null,
+  tags: [],
+  created_at: '2026-11-05T10:00:00Z',
+  updated_at: '2026-11-05T10:00:00Z',
+}
+
 function renderSection(analysis: Analysis) {
+  server.use(http.get(`${API_BASE_URL}/tracks/3`, () => HttpResponse.json(track)))
   return render(
     <QueryClientProvider client={createQueryClient()}>
       <ResultsSection analysis={analysis} />
