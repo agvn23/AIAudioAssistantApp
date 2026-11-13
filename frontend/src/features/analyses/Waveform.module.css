@@ -13,6 +13,31 @@
   margin-top: var(--space-3);
 }
 
+.position {
+  display: flex;
+  flex: 1 1 14rem;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.positionLabel {
+  font-weight: 600;
+}
+
+.slider {
+  flex: 1 1 auto;
+  min-width: 6rem;
+  min-height: 2.75rem;
+  accent-color: var(--color-accent);
+}
+
+.time {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .note {
   margin: 0;
   color: var(--color-muted);
@@ -21,4 +46,10 @@
 
 .note:empty {
   display: none;
+}
+
+.hint {
+  margin: var(--space-2) 0 0;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
 }
