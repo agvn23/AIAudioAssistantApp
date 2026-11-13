@@ -52,6 +52,7 @@
     "node": ">=22"
   },
   "allowScripts": {
-    "msw": false
+    "msw": false,
+    "fsevents@2.3.3": true
   }
 }
