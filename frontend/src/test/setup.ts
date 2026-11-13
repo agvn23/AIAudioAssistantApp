@@ -24,6 +24,18 @@ if (typeof HTMLDialogElement !== 'undefined') {
   }
 }
 
+// jsdom cannot draw on a canvas and prints "Not implemented: HTMLCanvasElement's
+// getContext()" whenever axe asks for a context. Answering null, which is what a
+// browser without canvas support does, keeps the output clean. Nothing here
+// draws; wavesurfer is replaced by a fake in the tests that need it.
+if (typeof HTMLCanvasElement !== 'undefined') {
+  Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+    configurable: true,
+    writable: true,
+    value: () => null,
+  })
+}
+
 // A request without a matching handler fails the test instead of reaching the network.
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 
