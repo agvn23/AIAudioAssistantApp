@@ -25,15 +25,37 @@ flowchart LR
 ## What it does
 
 - Accounts with email and password, and token authentication.
-- Tracks with title, genre, target platform, notes and tags, with full create, read, update and delete.
+- Tracks with title, genre, target platform, notes and tags, with full create, read, update and delete, and a searchable, filterable, paged list.
 - One **analysis per uploaded version** of a track (demo, mix or master), so versions can be compared over time.
-- Background analysis with a status to poll (`pending`, `running`, `done`, `failed`).
-- AI feedback on any finished analysis, generated on demand.
+- Upload with a progress bar, then background analysis with a status that the page polls (`pending`, `running`, `done`, `failed`).
+- A version page with the measurements as cards, a spectrum chart, and a waveform drawn from the file you chose, in your browser only.
+- AI feedback on any finished analysis, generated on demand, with the cited numbers shown next to each suggestion.
+- A light, dark or system theme.
 - The uploaded audio is a temporary file that is **deleted as soon as analysis finishes**. Only the metrics JSON is stored.
 
-The React and TypeScript frontend (upload, waveform, results cards, version list) is the next milestone. This repository currently contains the analysis engine and the API.
+## Screenshots
 
-<!-- Add screenshots here once the frontend exists. -->
+Each screenshot follows your theme: GitHub shows the dark version to viewers on a dark theme and the light one otherwise.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/track_list_dark.png">
+  <img alt="The track list: a search form, a genre filter, the number of tracks and a card for each track with its genre, platform and tag chips." src="docs/screenshots/track_list_light.png">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/version_page_dark.png">
+  <img alt="A track page with its details and a list of uploaded versions, each with a status badge, stage, file name and date." src="docs/screenshots/version_page_light.png">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/feedback_cards_dark.png">
+  <img alt="AI feedback cards. Each card names the area and priority, what the numbers show, what to try, and the metric paths and values it is based on." src="docs/screenshots/feedback_cards_light.png">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/upload_dialog_dark.png">
+  <img alt="The upload dialog: an audio file picker, a stage choice and an optional label, with a note that the audio is deleted after analysis." src="docs/screenshots/upload_dialog_light.png">
+</picture>
 
 ## What gets measured
 
@@ -74,6 +96,7 @@ The reasoning behind each measurement choice is in [`docs/DECISIONS.md`](docs/DE
 - Platform loudness differences (Spotify -14 LUFS, Apple Music -16, YouTube -14, EBU R128 broadcast -23, true-peak ceiling -1 dBTP) are computed in code and cited like measurements. The reference table lives in `references.py` in the feedback service.
 - At the demo and mix stages, loudness items are capped at medium priority in code, not only in the prompt, because loudness is a mastering concern.
 - A failed feedback call never changes the analysis or its previous feedback.
+- The version page tells you when the feedback is out of date, because the stage, genre or platform changed after it was written.
 
 ## Architecture
 
@@ -86,9 +109,17 @@ backend/
     ...          config, db, models, schemas, security, error handling, rate limits
   alembic/       database migrations
   tests/
-frontend/        React + TypeScript (next milestone)
-schema/          metrics.schema.json
-docs/            API.md (API plan as built), DECISIONS.md (decision log)
+frontend/
+  src/
+    api/         typed client generated from schema/openapi.json, error handling, upload
+    app/         router shell
+    components/  shared form controls (Button, TextField, SelectField, ...)
+    features/    account, analyses, auth, results, tracks
+    lib/         shared date and parse helpers
+    theme/       theme store and switch
+    test/        test setup, API mocks, fixtures
+schema/          metrics.schema.json, openapi.json
+docs/            API.md (API plan as built), DECISIONS.md (decision log), screenshots/
 ```
 
 Data model:
@@ -103,11 +134,15 @@ erDiagram
 
 Upload flow: validate extension and size, stream to a randomly named temp file, create the analysis row (`pending`) and answer `202`. A background task then runs the analysis (`running`, then `done` or `failed`), stores the metrics and deletes the temp file in a `finally` block. The client polls `GET /analyses/{id}`.
 
-Stack: Python 3.12+ (developed on 3.14), FastAPI, SQLAlchemy 2.0, Pydantic v2, Alembic, SQLite, essentia, numpy and scipy, ffmpeg, pytest.
+Stack:
+- Backend: Python 3.12+ (developed on 3.14), FastAPI, SQLAlchemy 2.0, Pydantic v2, Alembic, SQLite, essentia, numpy and scipy, ffmpeg, pytest.
+- Frontend: React and TypeScript (Vite), React Router, TanStack Query, react-hook-form, openapi-fetch, wavesurfer.js, CSS Modules, Vitest, Testing Library and MSW.
 
 ## Quickstart
 
-Requirements: Python 3.12 or newer and `ffmpeg` on your PATH (`brew install ffmpeg` on macOS, `apt install ffmpeg` on Debian or Ubuntu). `pip install essentia` works on Linux and macOS; on Windows use WSL.
+Requirements: Python 3.12 or newer, Node 22 or newer, and `ffmpeg` on your PATH (`brew install ffmpeg` on macOS, `apt install ffmpeg` on Debian or Ubuntu). `pip install essentia` works on Linux and macOS; on Windows use WSL.
+
+### Backend
 
 ```bash
 cd backend
@@ -134,13 +169,45 @@ python -m analysis.cli ../samples/my_track.wav --genre "house" --platform spotif
 Tests and linting:
 
 ```bash
-pytest                            # 370+ tests; one opt-in live test is skipped by default
+pytest                            # 373 tests; one opt-in live test is skipped by default
 ruff check . && ruff format .
 ```
 
+### Frontend
+
+In a second terminal, with the backend running:
+
+```bash
+cd frontend
+npm install
+cp .env.example .env
+npm run dev                       # http://localhost:5173
+```
+
+Open http://localhost:5173, register an account and create a track. The dev server always uses port 5173, because the API's CORS list names it; it refuses to start if the port is taken.
+
+| Script | What it does |
+|---|---|
+| `npm run dev` | Dev server |
+| `npm test` | Runs the tests once (`npm run test:watch` watches) |
+| `npm run typecheck` | TypeScript check |
+| `npm run lint` | ESLint |
+| `npm run format:check` | Prettier check (`npm run format` writes) |
+| `npm run build` | Type check and production build into `frontend/dist` |
+| `npm run api:types` | Regenerates `src/api/schema.d.ts` from `schema/openapi.json` |
+
+There are 821 frontend tests. Typecheck, lint, format check and build pass, and `npm audit --omit=dev` reports no vulnerabilities. The `npm audit` findings in the development tools are reviewed in [`docs/DECISIONS.md`](docs/DECISIONS.md).
+
+Frontend settings are environment variables in `frontend/.env`. Vite reads them when it builds, so a change needs a restart or a rebuild.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `VITE_API_URL` | `http://127.0.0.1:8000` | Where the API is. Its origin has to be allowed by the API's `CORS_ORIGINS` |
+| `VITE_MAX_UPLOAD_MB` | `100` | Largest file the upload dialog accepts. A convenience check only; the server's `MAX_UPLOAD_MB` decides |
+
 ## Configuration
 
-All settings are environment variables, optionally in `backend/.env`. See `backend/.env.example`.
+All backend settings are environment variables, optionally in `backend/.env`. See `backend/.env.example`.
 
 | Variable | Default | Meaning |
 |---|---|---|
@@ -189,17 +256,37 @@ Every error has one shape, with a stable machine-readable code:
 {"error": {"code": "not_found", "message": "Track not found"}}
 ```
 
+The frontend branches on `error.code`, never on the message.
+
 ## Security and privacy
 
 - Passwords are hashed with Argon2. Login failures give one generic message, and unknown emails take about as long to answer as wrong passwords.
 - Access tokens are short-lived JWTs (30 minutes). User ids are never reused, so a token from a deleted account can never authenticate as someone else.
+- The frontend keeps the token in `sessionStorage`, so it ends with the browser tab, and clears it on a 401 or on sign-out. The theme choice is kept in `localStorage`.
 - Every query is filtered by the current user. Another user's resource returns `404`, not `403`, so ids cannot be probed.
 - Deleting an account requires the password, and the database cascades the deletion to everything the user owns.
-- Audio files are written to randomly named temp files (the client's file name is only a label), size-limited, and deleted after analysis. Their contents are never logged.
+- Audio files are written to randomly named temp files (the client's file name is only a label), size-limited, and deleted after analysis. Their contents are never logged. The waveform is drawn in the browser from the file you chose and is never uploaded a second time or stored.
 - ffmpeg is always called with an argument list and a timeout, never through a shell.
 - Unexpected errors return a generic `500` with a request id. The traceback goes to the server log only.
 - CORS allows only the configured frontend origins, and 413, 429 and 500 responses keep their CORS headers so the frontend can read them.
 - Rate limits, quotas and capacity caps protect the CPU and the free-tier AI quota.
+
+## Accessibility
+
+What has been done:
+
+- Native controls and dialogs, labelled form fields, and status and error messages that are announced.
+- Automated checks: the page and component tests run axe (vitest-axe). jsdom has no layout, so its `color-contrast` and `region` rules are turned off, and contrast is checked another way.
+- Contrast: every colour pair in the design tokens was calculated with the WCAG formula, in the light and the dark theme. Text is at least 4.5:1 and non-text parts at least 3:1. Card borders (about 1.5 to 1.7:1) are decorative and not held to that. The upload progress bar was judged by eye, not calculated.
+- Colour never carries meaning alone: priorities are written out, the spectrum chart has a hidden data table, and its direction does not depend on colour.
+- Keyboard: the dialogs were checked by hand in a browser (focus moves into the dialog, Esc closes it, focus returns to the opener). The waveform has a native "Position" slider that moves 1 s with the arrow keys and 10 s with Page Up and Page Down, covered by automated tests.
+- The theme follows the operating system and can be set to light or dark.
+
+What has not:
+
+- VoiceOver on macOS was used on the Tracks page only, where lists are announced with their counts. Still to check: the "Error:" prefix on form fields, the lists in the feedback cards, and how the position slider is spoken. One report is unexplained: a track's genre text was announced as "clickable" until the track was edited.
+- Other screen readers, and keyboard-only use of every page, have not been tested systematically.
+- This is not an accessibility audit and makes no claim of WCAG conformance.
 
 ## Database and migrations
 
@@ -215,23 +302,40 @@ A test runs the migrations on a fresh database and compares the result with the 
 
 ## Running it for real: assumptions and limits
 
+Nothing here has been deployed yet. These notes follow from how the code is built; they have not been tried on a server.
+
 - **Single process.** Background tasks, the rate limiter and the analysis concurrency cap live in memory. A restart resets rate-limit counters, and analyses left running by a previous process are marked `failed` (`interrupted`) at startup. Several workers would each count separately; scaling out means a job queue and a shared store such as Redis.
-- **Reverse proxy.** Put a request-body limit on the proxy that matches `MAX_UPLOAD_MB`: the application rejects oversized bodies, but only after they have reached it. Run uvicorn with `--proxy-headers` and `--forwarded-allow-ips` set to the proxy, otherwise per-IP limits see the proxy's address for every client.
+- **Reverse proxy.** Put a request-body limit on the proxy that matches `MAX_UPLOAD_MB`: the application rejects oversized bodies, but only after they have reached it. It allows 1 MB more than `MAX_UPLOAD_MB` for the multipart framing, and a megabyte is 1024 × 1024 bytes. Run uvicorn with `--proxy-headers` and `--forwarded-allow-ips` set to the proxy, otherwise per-IP limits see the proxy's address for every client. Serve everything over HTTPS, because the bearer token travels in a header.
+- **CORS.** Set `CORS_ORIGINS` to the exact origin the frontend is served from (for example `https://app.example.com`). `*` is refused at startup.
+- **Secrets.** Set `ENVIRONMENT` to anything other than `development` and set a real `JWT_SECRET` (generate one as in the quickstart). The application refuses to start outside development with the built-in secret. Keep `GEMINI_API_KEY` in the environment, never in the repository.
+- **Migrations.** Run `alembic upgrade head` before starting a new version. They are never run automatically.
+- **Frontend.** `npm run build` writes static files to `frontend/dist`. `VITE_API_URL` and `VITE_MAX_UPLOAD_MB` are fixed at build time, so rebuild to change them. The server has to answer unknown paths such as `/tracks/3` with `index.html`, because the routes live in the browser.
+- **System tools.** The server needs `ffmpeg` and essentia (Linux or macOS).
 - **SQLite.** Fine for a demo. `DATABASE_URL` allows moving to Postgres.
 
 ## Roadmap
 
-- React and TypeScript frontend: upload with progress, waveform (wavesurfer.js), results cards, version list with edit and delete, optional follow-up chat.
 - Verify spectrum, stereo and RMS against a meter; calibrate tempo and key reliability on more tracks, including half-time ones.
+- Set the shared feedback rate limit from the real Gemini free-tier quota (the 200/day default is a guess).
 - Genre reference curves for the spectrum.
-- Version comparison endpoint (`GET /tracks/{id}/compare`).
+- Version comparison endpoint (`GET /tracks/{id}/compare`) and a view for it.
+- `GET /tags`, so the track list can offer a tag picker.
+- The remaining VoiceOver checks.
+- Optional follow-up chat about a result.
+- A script that dumps `schema/openapi.json` from the backend.
 - Refresh tokens, a job queue, Postgres.
 
 Out of scope for now: a DAW plugin, audio generation, stem separation and sample-library search.
+
+## Licence
+
+The code in this repository is released under the [MIT licence](LICENSE).
+
+The analysis needs essentia, which is licensed under AGPL-3.0 (`pip show essentia` reports `AGPL-3.0-only`). This repository does not contain essentia; it only requires it. Anyone who runs or redistributes the whole project together with essentia has to follow essentia's own terms.
 
 ## Project documents
 
 - [`docs/API.md`](docs/API.md): the API and data model as built.
 - [`docs/DECISIONS.md`](docs/DECISIONS.md): the decision log, including what changed and why.
-
-<!-- License: not chosen yet. Add one before publishing. -->
+- [`frontend/README.md`](frontend/README.md): the frontend on its own.
+- [`LICENSE`](LICENSE): the MIT licence.
