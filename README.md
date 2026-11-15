@@ -94,8 +94,11 @@ The differences are at most 0.6 dB and change sign from track to track. SPAN rea
 Not verified yet, and flagged as such:
 
 - Spectrum bands, stereo width and correlation have not been compared against a meter. Checks on synthetic signals pass (pink noise reads flat across the bands, white noise slopes up about 3 dB per octave, identical, inverted and unrelated channels give the expected correlation and width), but they test the definitions, not a meter. How to do the meter checks is in [`docs/DECISIONS.md`](docs/DECISIONS.md).
+- Known gap: the `possible_clipping` warning counts samples at or near full scale, so it does not see inter-sample overs. One of my tracks has a true peak of +1.2 dBTP, no clipped samples and no warning. A warning for a true peak above 0 dBTP is planned.
 - Dynamic range is an approximation with its own definition, so it is not comparable with DR14 meters.
 - Tempo and key were checked on two tracks (123.7 against a true 124 BPM with the key correct, and 128 BPM correct at confidence 0.54). The reliability thresholds that clamp low-confidence feedback are placeholders calibrated on that small sample.
+
+True peak was also compared with SPAN on two more tracks and agrees with its louder channel within 0.1 dB.
 
 The reasoning behind each measurement choice is in [`docs/DECISIONS.md`](docs/DECISIONS.md).
 
@@ -106,6 +109,7 @@ The reasoning behind each measurement choice is in [`docs/DECISIONS.md`](docs/DE
 - Platform loudness differences (Spotify -14 LUFS, Apple Music -16, YouTube -14, EBU R128 broadcast -23, true-peak ceiling -1 dBTP) are computed in code and cited like measurements. The reference table lives in `references.py` in the feedback service.
 - At the demo and mix stages, loudness items are capped at medium priority in code, not only in the prompt, because loudness is a mastering concern.
 - A failed feedback call never changes the analysis or its previous feedback.
+- The free tier is small and Google changes it without notice. On 2026-11-15 AI Studio showed 15 requests per minute and 500 per day for `gemini-3.5-flash-lite`, and 5 per minute and 20 per day for `gemini-3.6-flash`. A failed citation check makes a second request, so one feedback call can use two. `RATE_LIMIT_FEEDBACK_GLOBAL` (200/day) is set to stay under the larger allowance; with a 20/day model, lower it to 10/day.
 - The version page tells you when the feedback is out of date, because the stage, genre or platform changed after it was written.
 
 ## Architecture
@@ -167,7 +171,7 @@ alembic upgrade head              # creates the database tables
 uvicorn app.main:app --reload     # API on http://127.0.0.1:8000, interactive docs at /docs
 ```
 
-AI feedback needs a Gemini API key (Google AI Studio). Put it in `.env` as `GEMINI_API_KEY`, and set `GEMINI_MODEL` to a current model name. Without a key everything else works and `POST /analyses/{id}/feedback` answers `503 not_configured`.
+AI feedback needs a Gemini API key (Google AI Studio). Put it in `.env` as `GEMINI_API_KEY`, and set `GEMINI_MODEL` to a current model name (`.env.example` uses `gemini-3.5-flash-lite`, which has the larger free-tier allowance). Without a key everything else works and `POST /analyses/{id}/feedback` answers `503 not_configured`.
 
 Analyse a file without the API:
 
@@ -326,7 +330,7 @@ Nothing here has been deployed yet. These notes follow from how the code is buil
 ## Roadmap
 
 - Verify spectrum and stereo against a meter; calibrate tempo and key reliability on more tracks, including half-time ones.
-- Set the shared feedback rate limit from the real Gemini free-tier quota (the 200/day default is a guess).
+- Check the feedback quality on `gemini-3.5-flash-lite`, store the model that answered with each feedback, and warn about a true peak above 0 dBTP.
 - Genre reference curves for the spectrum.
 - Version comparison endpoint (`GET /tracks/{id}/compare`) and a view for it.
 - `GET /tags`, so the track list can offer a tag picker.

@@ -12,7 +12,7 @@ Measure with DSP, explain with the LLM. The LLM only receives the metrics JSON (
   - Loudness (LUFS, LRA, true peak): ffmpeg `ebur128` filter via subprocess
   - BPM and key: essentia (native Python), audio decoded by ffmpeg to mono float32 at 44.1 kHz
   - Spectrum bands, dynamics, stereo: numpy/scipy (see `docs/DECISIONS.md` for how each value is defined)
-- LLM: Gemini free tier (google-genai) behind a FeedbackGenerator interface in app/services/feedback/, structured JSON output
+- LLM: Gemini free tier (google-genai, model `gemini-3.5-flash-lite`; the free-tier limits are small and change, see `docs/DECISIONS.md`) behind a FeedbackGenerator interface in app/services/feedback/, structured JSON output
 - Data: SQLAlchemy 2.0 + Pydantic v2 + Alembic, SQLite to start (Postgres later if needed). Auth: email + password (Argon2) with JWT bearer tokens. Uploaded audio is a temporary file deleted after analysis; only the metrics JSON is stored. Full plan in `docs/API.md`
 - Platform note: `pip install essentia` works on Linux and macOS; on Windows use WSL.
 
@@ -87,8 +87,8 @@ Week 3 (frontend): slices 0 to 4 are done and merged into dev.
 - Slice 3 (upload and polling, PR #10): XHR upload with progress and validation, version list with polling, `/analyses/:id` version page (status, edit, delete), waveform from the local file in-session only.
 - Slice 4 (results): runtime parsers for metrics and feedback, metrics cards, hand-written SVG spectrum chart with a hidden table, feedback cards with generate and regenerate.
 Week 3 (frontend): slice 5 (polish) is built and pushed on `frontend/slice-5-polish`; the code work is done. It adds the theme switch (system, light, dark), a repainting waveform with a keyboard position slider, "choose the audio file again", a contrast review, shared helpers, the label limit, the feedback rate-limit countdown and stale-feedback hint for genre and platform, and the `npm audit` and `allowScripts` review. 79 test files, 821 tests passing; typecheck, lint, format:check and build are clean; `npm audit --omit=dev` reports 0 vulnerabilities. Manual checks passed: upload end to end, dialogs, a 100 MB waveform, the AIFF message, an OS theme switch, narrow rows and paging. VoiceOver is checked on the Tracks page only. The decisions are in `docs/DECISIONS.md`.
-What remains of slice 5: the Gemini quota decision (`RATE_LIMIT_FEEDBACK_GLOBAL` and the model, see `docs/DECISIONS.md`), then the pull request into dev. The documentation is otherwise done.
-Next after that: the open checks in `docs/DECISIONS.md` (VoiceOver on the remaining pages, the unexplained "clickable" report), spectrum and stereo against a meter, more tempo and key tracks, a recheck of `npm audit` before submission, and choosing a licence.
+What remains of slice 5: push the branch and open the pull request into dev. The documentation is done.
+Next after that: a small backend follow-up slice (check the feedback quality on `gemini-3.5-flash-lite`, store `model_version` with the feedback, warn about a true peak above 0 dBTP), then the open checks in `docs/DECISIONS.md` (VoiceOver on the remaining pages, the unexplained "clickable" report), spectrum and stereo against a meter, more tempo and key tracks, a recheck of `npm audit` before submission, and choosing a licence.
 
 ## Plan
 1. Analysis engine + metrics JSON (done)
