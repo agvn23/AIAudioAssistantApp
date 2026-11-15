@@ -6,13 +6,13 @@ Web app where a producer uploads a track, gets measured audio metrics, and recei
 Measure with DSP, explain with the LLM. The LLM only receives the metrics JSON (see `schema/metrics.schema.json`) plus the user's context (genre, target platform, stage). It never "listens" to audio and must not invent measurements.
 
 ## Stack
-- Frontend: React + TypeScript (Vite), wavesurfer.js for waveforms
+- Frontend: React + TypeScript (Vite, strict, TypeScript pinned to ~5.9), React Router, TanStack Query 5, react-hook-form (no zod), openapi-fetch with types generated from `schema/openapi.json`, CSS Modules, wavesurfer.js for waveforms. Tests: Vitest, React Testing Library, MSW 2, vitest-axe
 - API: FastAPI (Python)
 - Analysis: Python package in `backend/analysis/`
   - Loudness (LUFS, LRA, true peak): ffmpeg `ebur128` filter via subprocess
   - BPM and key: essentia (native Python), audio decoded by ffmpeg to mono float32 at 44.1 kHz
   - Spectrum bands, dynamics, stereo: numpy/scipy (see `docs/DECISIONS.md` for how each value is defined)
-- LLM: Gemini free tier (google-genai) behind a FeedbackGenerator interface in app/services/feedback/, structured JSON output
+- LLM: Gemini free tier (google-genai, model `gemini-3.5-flash-lite`; the free-tier limits are small and change, see `docs/DECISIONS.md`) behind a FeedbackGenerator interface in app/services/feedback/, structured JSON output
 - Data: SQLAlchemy 2.0 + Pydantic v2 + Alembic, SQLite to start (Postgres later if needed). Auth: email + password (Argon2) with JWT bearer tokens. Uploaded audio is a temporary file deleted after analysis; only the metrics JSON is stored. Full plan in `docs/API.md`
 - Platform note: `pip install essentia` works on Linux and macOS; on Windows use WSL.
 
@@ -26,12 +26,13 @@ backend/
   alembic/         migrations (versions/)
   tests/
   alembic.ini, requirements.txt, requirements-dev.txt, pyproject.toml, .env.example
-frontend/          React + TypeScript
-schema/            metrics.schema.json
+frontend/          React + TypeScript (Vite); tests live next to the code
+schema/            metrics.schema.json, openapi.json (the API contract the frontend types are generated from)
 samples/           your own tracks for manual testing (git-ignored, never committed)
 docs/API.md        the API and data model as built
 docs/DECISIONS.md  decision log
 ```
+Real test samples for the frontend stay in `frontend/src/test/fixtures/private/` (git-ignored, as is `*.wav`).
 
 ## Commands (from `backend/`)
 - Setup: `python -m venv .venv && source .venv/bin/activate && pip install -r requirements-dev.txt`
@@ -42,6 +43,15 @@ docs/DECISIONS.md  decision log
 - Tests: `pytest`
 - Lint/format: `ruff check . && ruff format .`
 - Requires `ffmpeg` on PATH.
+
+## Commands (from `frontend/`; check `pwd` first, because the repo root and its parents have their own package.json files)
+- Install: `npm install` (Node 22 or newer)
+- Dev server: `npm run dev` (http://localhost:5173; the port is fixed because the API's CORS list names it)
+- Tests: `npm test` (Vitest, runs once; `npm run test:watch` for watch mode)
+- Checks: `npm run typecheck`, `npm run lint`, `npm run format:check` (`npm run format` writes), `npm run build`
+- API types: `npm run api:types` regenerates `src/api/schema.d.ts` from `../schema/openapi.json`. There is no script yet that dumps `openapi.json` from the backend (listed as open in `docs/DECISIONS.md`)
+- Audit: `npm audit --omit=dev` (dev-only findings are reviewed in `docs/DECISIONS.md`)
+- Config: `VITE_MAX_UPLOAD_MB` (default 100) is the size the upload dialog checks before sending; keep it in step with the backend's `MAX_UPLOAD_MB`. The API address and CORS: set `CORS_ORIGINS` in `backend/.env` to the frontend's address outside development.
 
 ## Conventions
 - Python 3.12 or newer (developed on 3.14), type hints everywhere, ruff for lint and format.
@@ -57,21 +67,34 @@ docs/DECISIONS.md  decision log
 - Work one slice at a time on a feature branch; keep each slice small and verified before the next. Slices are built in Claude chat: whole files plus tests, run locally.
 - Uploaded audio is deleted after analysis unless the user saves the track. Do not log file contents.
 
+## Frontend conventions
+- `docs/API.md` and `schema/openapi.json` are the contract. HTTP failures become an `ApiError` in one place (`src/api/client.ts`); callers branch on `error.code`, never on the message.
+- Field limits come from `openapi.json`, are counted in characters after trimming, and use no native `maxLength` (a native limit would silently cut pasted text).
+- The `metrics` and `feedback` objects are parsed at runtime by strict parsers; a wrong required part gives `null`.
+- Styling: CSS Modules with tokens from `index.css`. The dark tokens exist twice (the system preference and the `data-theme` override) and `tokens.test.ts` fails if they differ. The theme choice is stored under `aaa.theme`; an inline script in `index.html` applies it before first paint and `noFlash.test.ts` keeps it in step.
+- Dialogs are native `<dialog>`. Forms use react-hook-form.
+- Tests: `onUnhandledRequest` is `'error'` in MSW, so a page that gains a request needs handlers in every existing test that renders it. vitest-axe runs with `color-contrast` and `region` disabled (jsdom has no layout); contrast is checked by calculation. Vitest turns CSS imports into an empty string, so a test that must read a file uses `node:fs` with `process.cwd()` in the default jsdom environment. Module mocks use `vi.hoisted`.
+- Lint: the react-hooks rules are strict (no reading refs during render, no setState in effects), and unused imports fail typecheck and lint.
+- Never use `--force` or `--legacy-peer-deps`. If versions conflict, show them and choose a fix together.
+
 ## Current slice (update as you go)
-Week 1 (analysis engine) is complete: `analysis/metrics.py` (`analyze_file`) assembles the full metrics JSON and the CLI prints it. Loudness, LRA and true peak are verified against Youlean, the DAW meter, SPAN and WLM on one track. Still open: spectrum bands, stereo width/correlation and RMS are not yet spot-checked against a meter; tempo/key reliability thresholds are calibrated on one track (two checked in total).
+Week 1 (analysis engine) is complete: `analysis/metrics.py` (`analyze_file`) assembles the full metrics JSON and the CLI prints it. Loudness, LRA and true peak are verified against Youlean, the DAW meter, SPAN and WLM on one track. RMS is checked (equal to ffmpeg's astats on one track, within 0.6 dB of SPAN on three). Still open: spectrum bands and stereo width/correlation are not yet spot-checked against a meter (procedures in `docs/DECISIONS.md`); tempo/key reliability thresholds are calibrated on one track (two checked in total).
 Week 2 (API) is complete: slices 1-5 done (config/db/auth, tracks and tags, upload and analysis, AI feedback, hardening with account deletion, error envelope, CORS, limits, rate limits, Alembic, README). 373 tests passing, 1 skipped (an opt-in live test).
-Week 3 (frontend), slice 0 is done and merged: Vite + React + strict TypeScript 5.9 in frontend/, Vitest + React Testing Library + MSW 2, Prettier, typed client generated from schema/openapi.json (npm run api:types), ApiError normalisation, sessionStorage token store, router shell and a throwaway health page. 26 tests passing. 
-Week 3 (frontend): slice 0 done. Slice 1 (auth) done and merged: login, register (auto sign-in), route guard, session-expiry handling, account page with delete-account dialog, shared form components.
-Week 3 (frontend): slice 2 (tracks) done: /tracks list with URL-driven search, genre, tag and paging, tag chips, create/edit/delete dialogs, /tracks/:id detail page.
-Week 3 (frontend): slice 3 (upload + polling) done and merged (PR #10): XHR upload with progress and validation, version list on /tracks/:id with polling, /analyses/:id version page (status, edit, delete), waveform from the local file in-session only.
-Week 3 (frontend): slice 4 (results) done on frontend/slice-4-results: runtime parsers for metrics and feedback, metrics cards, hand-written SVG spectrum chart with a hidden table, feedback cards with generate and regenerate. 711 tests passing in 64 test files; typecheck, lint, format:check and build are clean.
-Next: slice 5 (polish and docs): theme switch (system, light, dark), real contrast and VoiceOver checks, the open items in docs/DECISIONS.md, README screenshots, deployment notes.
+Week 3 (frontend): slices 0 to 4 are done and merged into dev.
+- Slice 0: Vite + React + strict TypeScript, Vitest + Testing Library + MSW 2, typed client generated from `schema/openapi.json`, `ApiError` normalisation, sessionStorage token store, router shell.
+- Slice 1 (auth): login, register (auto sign-in), route guard, session-expiry handling, account page with delete-account dialog, shared form components.
+- Slice 2 (tracks): `/tracks` list with URL-driven search, genre, tag and paging, tag chips, create/edit/delete dialogs, `/tracks/:id` detail page.
+- Slice 3 (upload and polling, PR #10): XHR upload with progress and validation, version list with polling, `/analyses/:id` version page (status, edit, delete), waveform from the local file in-session only.
+- Slice 4 (results): runtime parsers for metrics and feedback, metrics cards, hand-written SVG spectrum chart with a hidden table, feedback cards with generate and regenerate.
+Week 3 (frontend): slice 5 (polish) is built and pushed on `frontend/slice-5-polish`; the code work is done. It adds the theme switch (system, light, dark), a repainting waveform with a keyboard position slider, "choose the audio file again", a contrast review, shared helpers, the label limit, the feedback rate-limit countdown and stale-feedback hint for genre and platform, and the `npm audit` and `allowScripts` review. 79 test files, 821 tests passing; typecheck, lint, format:check and build are clean; `npm audit --omit=dev` reports 0 vulnerabilities. Manual checks passed: upload end to end, dialogs, a 100 MB waveform, the AIFF message, an OS theme switch, narrow rows and paging. VoiceOver is checked on the Tracks page only. The decisions are in `docs/DECISIONS.md`.
+What remains of slice 5: push the branch and open the pull request into dev. The documentation is done.
+Next after that: a small backend follow-up slice (check the feedback quality on `gemini-3.5-flash-lite`, store `model_version` with the feedback, warn about a true peak above 0 dBTP), then the open checks in `docs/DECISIONS.md` (VoiceOver on the remaining pages, the unexplained "clickable" report), spectrum and stereo against a meter, more tempo and key tracks, a recheck of `npm audit` before submission, and choosing a licence.
 
 ## Plan
 1. Analysis engine + metrics JSON (done)
 2. FastAPI API: accounts and tokens, Track/Tag/Analysis CRUD, upload + analysis, LLM feedback, hardening (done; see `docs/API.md`)
-3. React UI: upload, waveform, results cards, track list with edit/delete, optional follow-up chat
-4. Final hardening and polish: deployment notes, README screenshots, calibration of the open measurement checks
+3. React UI: upload, waveform, results cards, track list with edit/delete (done in slices 0 to 5; the optional follow-up chat is not built)
+4. Final hardening and polish: deployment notes, README screenshots, calibration of the open measurement checks (in progress)
 
 ## Out of scope for now
 DAW plugin, audio generation or stem separation, sample-library search.

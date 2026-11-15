@@ -1,14 +1,16 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useState, useSyncExternalStore } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { ApiError, describeError } from '../../api/errors'
 import type { Analysis } from '../../api/types'
 import { Button } from '../../components/Button'
+import { formatDateTime } from '../../lib/dates'
 import { describeAnalysisError } from './analysisErrors'
 import styles from './AnalysisPage.module.css'
 import { DeleteVersionDialog } from './DeleteVersionDialog'
 import { EditVersionDialog } from './EditVersionDialog'
 import { STAGE_LABEL, STATUS_LABEL } from './labels'
-import { forgetFile, getRememberedFile } from './sessionFiles'
+import { ReattachFile } from './ReattachFile'
+import { forgetFile, getRememberedFile, subscribeToFiles } from './sessionFiles'
 import { ResultsSection } from './ResultsSection'
 import { useAnalysis } from './useAnalyses'
 
@@ -19,12 +21,6 @@ function parseId(raw: string | undefined): number | null {
   if (raw === undefined || !/^\d+$/.test(raw)) return null
   const id = Number(raw)
   return Number.isSafeInteger(id) && id > 0 ? id : null
-}
-
-function formatDateTime(iso: string): string {
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return iso
-  return date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
 function statusMessage(analysis: Analysis): string {
@@ -56,9 +52,12 @@ function VersionMissing() {
   )
 }
 
-/** The waveform of the file uploaded in this session, or an honest note that there is none. */
+/**
+ * The waveform of the file chosen in this session, or an honest note with a way
+ * to choose the file again. The file stays in this tab's memory only.
+ */
 function WaveformSection({ analysisId }: { analysisId: number }) {
-  const file = getRememberedFile(analysisId)
+  const file = useSyncExternalStore(subscribeToFiles, () => getRememberedFile(analysisId))
   return (
     <section aria-labelledby="waveform-heading" className={styles.later}>
       <h2 id="waveform-heading">Waveform</h2>
@@ -67,11 +66,14 @@ function WaveformSection({ analysisId }: { analysisId: number }) {
           <Waveform key={analysisId} file={file} />
         </Suspense>
       ) : (
-        <p>
-          The waveform is drawn from the file on your computer, which is never stored on the server.
-          It is only available in the browser tab where you uploaded the file, until you reload the
-          page or sign out.
-        </p>
+        <>
+          <p>
+            The waveform is drawn from the file on your computer, which is never stored on the
+            server. Choose the file again to see it. It stays available in this tab until you reload
+            the page or sign out.
+          </p>
+          <ReattachFile analysisId={analysisId} />
+        </>
       )}
     </section>
   )

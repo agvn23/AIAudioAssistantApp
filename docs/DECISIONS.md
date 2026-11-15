@@ -30,7 +30,7 @@ A running log of project decisions. Add new entries at the bottom of the table w
 | 2026-11-02 | At the demo and mix stages loudness items are capped at medium priority in code (not only in the prompt), unless samples are clipped | The final limiter comes later, so loudness is a mastering concern |
 | 2026-11-05 | Slices 2 to 5 are built in Claude chat: whole files plus tests, run locally, one slice at a time on a feature branch. Claude Code is not used | Supersedes the Claude Code row above |
 | 2026-11-05 | The auth and database stack proposed on 2026-10-27 is what was built (Argon2, 30-minute JWTs, SQLAlchemy 2.0 + Pydantic v2 on SQLite); Alembic was added in slice 5 | Refresh tokens and Postgres remain stretch goals |
-| 2026-11-05 | Feedback model in use: `gemini-3.5-flash` | `gemini-3.8-flash` was overloaded when tried. Check current model names in the docs rather than hard-coding one |
+| 2026-11-05 | ~~Feedback model in use: `gemini-3.5-flash`~~ | Superseded by the 2026-11-15 model entry below. `gemini-3.8-flash` was overloaded when tried. Check current model names in the docs rather than hard-coding one |
 | 2026-11-05 | One error format for the whole API: `{"error": {"code", "message", "fields"?, "request_id"?}}`, replacing FastAPI's `detail`. Codes are stable strings (list in `docs/API.md`) | The frontend branches on `code`. 422 responses never echo the submitted value, so a rejected password is not sent back. `ApiError` carries an explicit code where the status is not enough |
 | 2026-11-05 | Unexpected exceptions become a generic 500 through a middleware inside CORS, not an exception handler. Every response has `X-Request-ID`, and the log line for a 500 carries the same id | Starlette's own 500 handler sits outside CORS, so those 500s would lack CORS headers and the browser would hide the real error |
 | 2026-11-05 | `ApiError` derives from FastAPI's `HTTPException` | FastAPI turns any other exception raised while reading a request body into a 400 but re-raises its own `HTTPException`; the body-size middleware needs 413 to come through |
@@ -48,8 +48,8 @@ A running log of project decisions. Add new entries at the bottom of the table w
 | 2026-11-11 | Frontend: HTTP failures are normalised in one custom fetch passed to openapi-fetch (`src/api/client.ts`), not in its middleware | Every failure becomes an `ApiError` with status, code, fields, request id and Retry-After, so callers branch on `error.code` and never on the message |
 | 2026-11-11 | Frontend: the login body sends `scope: ''` | The generated type marks `scope` as required although the API defaults it |
 | 2026-11-11 | Frontend: Vite `strictPort` on 5173 | The API's CORS list names that port. If Vite silently moved to 5174, every request would fail CORS |
-| 2026-11-11 | Frontend: `npm audit` shows 10 moderate issues, all in dev tooling, not yet reviewed | Review in the polish slice, together with the allowScripts warning below |
-| 2026-11-11 | Frontend: `npm install` warns that fsevents and msw have install scripts not covered by `allowScripts` | Not decided yet. Review with `npm audit` in the polish slice |
+| 2026-11-11 | ~~Frontend: `npm audit` shows 10 moderate issues, all in dev tooling, not yet reviewed~~ | Superseded by the 2026-11-14 npm audit entry below. Review in the polish slice, together with the allowScripts warning below |
+| 2026-11-11 | ~~Frontend: `npm install` warns that fsevents and msw have install scripts not covered by `allowScripts`~~ | Superseded by the 2026-11-14 allowScripts entry below. Not decided yet. Review with `npm audit` in the polish slice |
 | 2026-11-11 | Frontend (slice 1): no confirm-password field on register | The plan did not include one. Revisit if password typos turn out to be a problem |
 | 2026-11-11 | Frontend (slice 1): a wrong-password login shows its own "Incorrect email or password." | The generic copy for `unauthorized` talks about expired sessions, which is wrong on the login form |
 | 2026-11-11 | Frontend (slice 1): `returnTo` is sanitised to same-origin paths, never `/login` or `/register` | The query string is user-controlled. Without this, a crafted link would redirect off-site after login |
@@ -83,7 +83,7 @@ A running log of project decisions. Add new entries at the bottom of the table w
 | 2026-11-11 | Frontend (slice 3): known analysis `error_code` values have their own copy; an unknown code shows "The analysis failed (code)"; the three "tool missing" codes say it is not the file's fault | More codes may exist. Showing the code lets it be reported |
 | 2026-11-11 | Frontend (slice 3): the version page `/analyses/:id` shows status and details, edits stage and label (only changed fields, a cleared field sends `null`, no change means no request) and deletes after a confirm dialog, then returns to the track. Metrics and feedback are slice 4 | A 404 wins over cached data and a non-numeric id shows "not found" without a request |
 | 2026-11-11 | Frontend (slice 3): the waveform uses `wavesurfer.js` 8.0.5, loaded lazily, drawn from the `File` chosen in the upload dialog and kept only in tab memory (`sessionFiles.ts`). It is dropped on reload, on sign-out or a 401, and when the version is deleted | The server never keeps the audio. The page says so when no file is available, and also when the browser cannot decode the file |
-| 2026-11-11 | Frontend (slice 3): the waveform has a Play/Pause button; seeking works with the mouse only; colours are read once from the CSS tokens when the player is created | Keyboard seeking and repainting on a theme change are polish items |
+| 2026-11-11 | ~~Frontend (slice 3): the waveform has a Play/Pause button; seeking works with the mouse only; colours are read once from the CSS tokens when the player is created~~ | Superseded by the 2026-11-14 waveform entry below. Keyboard seeking and repainting on a theme change are polish items |
 | 2026-11-11 | Frontend (slice 3): tests replace XMLHttpRequest with a small fake for upload progress and abort, and replace wavesurfer with a fake. Polling tests use real timers with a 20 ms interval | jsdom plus MSW is not reliable for upload progress, and wavesurfer cannot run in jsdom. The real upload and drawing are browser checks |
 | 2026-11-11 | Frontend (slice 4): `parseMetrics` and `parseFeedback` check the free-form `metrics` and `feedback` objects at runtime. A missing or wrong required part gives `null`; a wrong optional part is dropped. One bad feedback item makes the whole feedback `null` | The generated types describe both as plain objects. The server already verified the feedback, so a bad item means the contract changed, and dropping it could hide the high-priority one |
 | 2026-11-11 | Frontend (slice 4): numbers are shown as stored (`formatNumber`, at most 2 decimals, no extra rounding). Confidence shows as a percentage and the stored value, for example `81% (0.81)` | Cards then match the numbers the AI quotes |
@@ -94,8 +94,24 @@ A running log of project decisions. Add new entries at the bottom of the table w
 | 2026-11-11 | Frontend (slice 4): the spectrum is a hand-written SVG bar chart, one bar per band on a categorical axis, with 0 dB (pink noise) as the base line and a visually hidden data table | Bar width does not map to Hz because values are energy per octave. Direction does not depend on colour |
 | 2026-11-11 | Frontend (slice 4): results show only for a finished version with readable metrics. Unreadable metrics show a message and no feedback button | Feedback is written from the measurements |
 | 2026-11-11 | Frontend (slice 4): generate and regenerate use one mutation with `retry: false`. It writes the returned analysis into the detail cache. A failure leaves the old feedback on screen and shows an alert. Own copy only for `conflict` and `rate_limited` (with the Retry-After wait); other codes use the shared copy | Every attempt costs feedback budget and model quota. Matches the server rule that a failed call changes nothing |
-| 2026-11-11 | Frontend (slice 4): the "feedback is out of date" hint compares the stage only. The version page does not load the track | Genre and platform live on the track. An extra request would need handlers in every page test. A later genre or platform change is not detected |
+| 2026-11-11 | ~~Frontend (slice 4): the "feedback is out of date" hint compares the stage only. The version page does not load the track~~ | Superseded by the 2026-11-14 feedback entry below. Genre and platform live on the track. An extra request would need handlers in every page test. A later genre or platform change is not detected |
 | 2026-11-11 | Frontend (slice 4): feedback priority is written out ("High priority"); the coloured left border is extra | Never colour alone |
+| 2026-11-14 | Frontend (slice 5): the theme is a select in the header (system, light, dark), saved in `localStorage` under `aaa.theme` with a memory fallback when storage is unavailable, and applied as `data-theme` on `<html>`. The page title is set | The dark tokens are written twice in `index.css`, and `tokens.test.ts` fails if the two copies differ. An inline script in `index.html` applies the saved theme before first paint, so it repeats the storage key; `noFlash.test.ts` keeps the two in step |
+| 2026-11-14 | Frontend (slice 5): the waveform repaints on a theme change through `setOptions` on the same player. Keyboard seeking is a native range input labelled "Position" with `aria-valuetext`: arrow keys move 1 s, Page Up and Page Down 10 s | Supersedes the slice 3 line "seeking works with the mouse only; colours are read once". How VoiceOver speaks the slider is still to be checked |
+| 2026-11-14 | Frontend (slice 5): "choose the audio file again" on the version page keeps the file in tab memory only. IndexedDB was considered and not used | The app keeps no audio by design, and storing it in the browser would contradict that. There is no size limit because nothing is uploaded; only the extension and an empty file are checked |
+| 2026-11-14 | Frontend (slice 5): contrast was calculated with the WCAG formula for every token pair in both themes: at least 4.5:1 for text and 3:1 for non-text. Card borders (about 1.5 to 1.7:1) are decorative and not required to pass. The busy track list is dimmed to opacity 0.9, raised from 0.6 | 0.85 gives 4.48:1 for muted text in the light theme, just under the limit. `dimmedList.test.ts` is a floor on the opacity, not a measurement of contrast. The progress bar was judged by eye, not calculated |
+| 2026-11-14 | Frontend (slice 5): code that was repeated is shared: failure text (`describeFailureWithWait`), stage and status labels, one date formatter (`src/lib/dates.ts`), the parse helpers `isRecord` and `readNumber` (`src/lib/parse.ts`), one field stylesheet (`Field.module.css`). `formatBandName` is renamed `formatIdentifier` because it is used for text that is not a band | `src/lib/parse.ts` is also used by `api/errors.ts`. Closes the slice 2 plan to share the field stylesheet in the polish slice |
+| 2026-11-14 | Frontend (slice 5): a label is at most 100 characters (`AnalysisUpdate.label` and the upload body in `openapi.json`), counted in characters after trimming, with no native `maxLength` | Same rule as the track fields: a native limit would silently cut pasted text. `labelRules.test.ts` reads `schema/openapi.json`, so the constant cannot drift from the contract |
+| 2026-11-14 | Frontend (slice 5): after a 429 `rate_limited` the feedback button counts down the `Retry-After` wait; `provider_error` has its own copy; the "feedback is out of date" hint now covers genre and platform as well as stage. `contextText.ts` mirrors `_clean_text` in `backend/app/services/feedback/prompt.py`: angle brackets and control characters become spaces, whitespace is collapsed with Python's whitespace set, the text is cut to 100 code points and trimmed, case is unchanged | The track is fetched only when saved, readable feedback has `meta`; if it cannot be loaded, no hint is shown. The hint compares what the server would have sent, so it must clean the text the same way. Supersedes the slice 4 entry "compares the stage only". If `_clean_text` changes, `contextText.ts` has to change with it |
+| 2026-11-14 | Frontend (slice 5): `HTMLCanvasElement.getContext` is stubbed to return `null` in `src/test/setup.ts`, so the test output has no "Not implemented" lines. `tokens.test.ts`, `noFlash.test.ts`, `dimmedList.test.ts` and `labelRules.test.ts` read files from disk | Vitest replaces CSS imports with an empty string, so these tests use `node:fs` with `process.cwd()` (tests run from `frontend/`) in the default jsdom environment |
+| 2026-11-14 | Frontend: `npm audit` reviewed. The findings are dev-only and moderate (10 at first, 9 later), all from `minimatch` 10.2.6 (GHSA-g3hv-75wg-m249) in the ESLint toolchain. `npm audit --omit=dev` reports 0. The only offered fix downgrades ESLint to 9 and needs `--force`, so it is not taken | Replaces the 2026-11-11 "not yet reviewed" entry. Recheck before submission |
+| 2026-11-14 | Frontend: `allowScripts` in `package.json` sets `msw` to false and `fsevents@2.3.3` to true | `msw`'s postinstall only acts when `package.json` has `msw.workerDirectory`, which this project does not use. `fsevents`' install script is `node-gyp rebuild`; it is the optional macOS file watcher for Vite. It is pinned to 2.3.3, so a new version needs a review. Corrects the 2026-11-11 note, which treated `fsevents` as having no install script |
+| 2026-11-14 | Frontend: verified that the frontend converts MB with 1024 × 1024, as `backend/app/request_limits.py` does (the request body gets 1 MB of multipart room on top). The stray space in `GEMINI_MODEL` is fixed in `.env`, and `.env.example` is clean | Closes two items of the polish list |
+| 2026-11-14 | Licence: MIT for the project's own code (`LICENSE`, copyright agvn23) | essentia, which the analysis needs, is `AGPL-3.0-only` (`pip show essentia`). The repository only requires it and does not contain it, so MIT covers the code written here. Anyone who runs or redistributes the whole project with essentia has to follow essentia's own terms. The README says so. This is a choice for a portfolio project, not legal advice |
+| 2026-11-14 | RMS checked. `rms_dbfs` (power average over both channels, whole file) equals ffmpeg's `astats` on one track (-23.5 vs -23.50) and is within 0.6 dB of SPAN's RMS readout on three tracks (ours vs SPAN left/right: -12.07 vs -12.2/-12.3, -12.09 vs -11.5/-11.5, -23.5 vs -23.9/-23.9) | The earlier note "ours -12.07 vs SPAN -13.6/-13.7" could not be reproduced and is withdrawn: the same file reads -12.2/-12.3 in SPAN. The sign of the difference changes between tracks, so it is not a bias. The cause of the remaining difference is not identified; SPAN reads during playback, which is not a whole-file power average. SPAN's "Max Crest Factor" is a different measurement and was not compared. SPAN's true-peak readings on the same three tracks (+1.3/+1.2, -0.9/-0.8, -2.5/-2.8) are noted for a comparison with the stored `true_peak_dbtp` |
+| 2026-11-15 | Feedback model and quota: the model is `gemini-3.5-flash-lite`, and `RATE_LIMIT_FEEDBACK_GLOBAL` stays at 200/day | A live call that asked for `gemini-3.5-flash` was answered by `gemini-3.6-flash`. In AI Studio that model has a free-tier limit of 5 requests per minute and 20 per day, so a 200/day budget could not protect it, and over the limit users would see `provider_error`. `gemini-3.5-flash-lite` showed 15 per minute and 500 per day, and a live call to it was answered by `gemini-3.5-flash-lite`. A feedback call can use two requests (the citation check retries once), so 200 calls use at most 400 of the 500. The limits were read from the AI Studio rate-limit table on 2026-11-15 and change without notice; Google no longer publishes them. The per-minute limit is not enforced by the app. The switch is made on quota grounds; the quality of the feedback on this model has not been compared yet. If it fails the citation check often (`invalid_output`) or reads poorly, go back to `gemini-3.5-flash` and set `RATE_LIMIT_FEEDBACK_GLOBAL=10/day` |
+| 2026-11-15 | Feedback `meta.model` records the model name the server asked for, not the model that answered (`model_version` in the Gemini response). The two differed on 2026-11-15 | Stored feedback therefore cannot say which model wrote it. Storing `model_version` as well is a small backend change, planned as a follow-up |
+| 2026-11-15 | True peak checked against SPAN on two more tracks: ours -0.8 vs SPAN -0.9/-0.8, and -2.5 vs -2.5/-2.8. Ours is the louder channel, and it matches SPAN's louder channel within 0.1 dB on these two and on the 2026-11-02 track (+1.2 vs +1.3/+1.2) | Known gap: `possible_clipping` counts samples at or near full scale, so it does not see inter-sample overs. The 2026-11-02 track has a true peak of +1.2 dBTP, a sample peak of -0.3 dBFS and 0 clipped samples, and gets no clipping warning (SPAN counted 289 and 193 true-peak clipping events on it). A warning for a true peak above 0 dBTP is planned as a follow-up; first check whether `schema/metrics.schema.json` limits the warning codes |
 
 ## Design principles
 
@@ -106,43 +122,64 @@ A running log of project decisions. Add new entries at the bottom of the table w
 
 ## Open questions
 
-- Is essentia accurate enough for BPM and key on real tracks, and does `edma` or `bgate` suit the genres you work in? First track: BPM 123.7 vs 124, key correct. Second track (the example track): BPM 128 correct at confidence 0.54, key not yet verified. Test 5-10 more with known values, including a half-time one, and log the results here.
-- Loudness, LRA and true peak are verified against Youlean, the DAW meter, SPAN and WLM on one track (2026-11-02): integrated -10.4 vs -10.3/-10.5 LUFS, short-term max -8.3 vs -8.3, momentary max -7.8 vs -7.7/-7.8, LRA 4.3 vs 4.3, true peak +1.2 vs +1.2 to +1.3. An earlier comparison used an older render of the file and is void. Still to check: spectrum bands, stereo width and correlation, and RMS (ours -12.07 vs SPAN -13.6/-13.7 live readout). DR is not comparable (different definitions).
-- Set `RATE_LIMIT_FEEDBACK_GLOBAL` from the actual Gemini free-tier quota (the 200/day default is a guess), and review the other rate-limit and quota numbers once the frontend exists and real usage is visible.
+- Is essentia accurate enough for BPM and key on real tracks, and does `edma` or `bgate` suit the genres you work in? First track: BPM 123.7 vs 124, key correct. Second track (the example track): BPM 128 correct at confidence 0.54, key not yet verified. Test 5-10 more with known values, including a half-time one, and log the results in the table below.
+- Loudness, LRA and true peak are verified against Youlean, the DAW meter, SPAN and WLM on one track (2026-11-02): integrated -10.4 vs -10.3/-10.5 LUFS, short-term max -8.3 vs -8.3, momentary max -7.8 vs -7.7/-7.8, LRA 4.3 vs 4.3, true peak +1.2 vs +1.2 to +1.3. An earlier comparison used an older render of the file and is void. RMS was checked on 2026-11-14 (see the table). Still to check against a meter: spectrum bands, and stereo width and correlation (procedures below). DR is not comparable (different definitions).
+- The Gemini free-tier numbers (see the 2026-11-15 model entry) are read from AI Studio and change without notice, so check them again before submission. Review the other rate-limit and quota numbers once real usage is visible.
+- Feedback quality on `gemini-3.5-flash-lite`: generate feedback on 3 to 5 analyses and look at how often the citation check fails (`invalid_output`, or a retry) and whether the text is as specific as before. Decide from that whether the switch stays.
+- Store `model_version` with the feedback (see the 2026-11-15 `meta.model` entry) and add a warning for a true peak above 0 dBTP (see the true-peak entry).
 - Deployment: where it will run, which reverse proxy enforces the body limit, and whether a single process is still enough (the rate limiter, analysis slots and background tasks all assume one).
 - Database: SQLite to start; move to Postgres only if needed.
 - File retention: audio is deleted after analysis, only metrics are kept. Decide whether stored metrics and feedback should expire.
-- Gemini free tier returned a 503 on 2026-11-11 (shown as 502 `provider_error`), and a retry worked. The cause is not determined (overload, or a stray space in `GEMINI_MODEL=`, since fixed). If it recurs, consider a different model and distinct frontend copy for a transient provider failure.
+- Gemini free tier returned a 503 on 2026-11-11 (shown as 502 `provider_error`), and a retry worked. The cause is not determined (overload, or a stray space in `GEMINI_MODEL=`, since fixed). The frontend now has its own copy for `provider_error`. If it recurs, consider a different model. `gemini-3.5-flash` is answered by `gemini-3.6-flash`, so the model's own load may be the cause.
+
+## Measurement checks still open: how to do them
+
+Written 2026-11-14. The tolerances are proposals made before there is any data. Change them when real data says so, and write down why.
+
+### Spectrum bands
+
+Done, with synthetic signals (60 s of noise at 44.1 kHz, run as a script; these checks are not in the test suite yet): pink noise reads 0 dB in every band within 0.4 dB (the sub band is loosest, +0.37 dB) with a tilt of -3.01; white noise has a tilt of 0.00 and bands that rise about 3 dB per octave; changing the level changes nothing. This tests the definitions, not a meter.
+
+To do:
+- Put these checks into the test suite.
+- Load a finished track into an analyser (SPAN) and average its spectrum over the whole track, with the slope setting at 0 dB per octave. Compare the shape with the band values: which bands are strongest, and the overall slope against `tilt_db_per_octave`. Do not expect per-band agreement in dB, because the analyser's resolution and averaging differ. A shape that disagrees by more than about 1 dB per octave is worth investigating.
+
+### Stereo width and correlation
+
+Done, with synthetic signals: identical channels give correlation 1 and width 0; inverted channels -1 and 1; unrelated channels of equal level 0 and 0.5; a one-sided signal 0 and 0.5.
+
+To do:
+- `side_to_mid_db` can be checked with ffmpeg alone. It is the side RMS minus the mid RMS, both in dB over the whole file. Run each command and take the last `RMS level dB` line (the overall value):
+
+```
+ffmpeg -hide_banner -nostats -i "samples/FILE.wav" -af "aresample=44100,pan=mono|c0=0.5*c0+0.5*c1,astats" -f null - 2>&1 | grep "RMS level dB" | tail -1
+ffmpeg -hide_banner -nostats -i "samples/FILE.wav" -af "aresample=44100,pan=mono|c0=0.5*c0-0.5*c1,astats" -f null - 2>&1 | grep "RMS level dB" | tail -1
+```
+
+  The first line is the mid, the second the side. A proposal for agreement is within 0.1 dB. These commands have not been run yet.
+- `phase_correlation` against the correlation meter of the DAW or SPAN, read over the whole track. A meter smooths over time and this value is one number for the whole file, so expect only a rough agreement (about 0.1) on steady material.
+- `width` comes from the same energies as `side_to_mid_db` (`width = r / (1 + r)` with `r = 10^(side_to_mid_db / 10)`), so it needs no separate meter. It is dominated by loud, centred low frequencies, so it reads small for most mixes.
+- `width` is stored with two decimals, so a value below 0.005 is stored as 0.0. `side_to_mid_db` keeps the detail.
+
+### Tempo and key
+
+Log of tracks with a known BPM and key. Add 8 to 10 tracks, including at least two where half-time or double-time is plausible. Run the CLI without `--skip-tempo-key`. `LOW_CONFIDENCE = 0.3` in `analysis/metrics.py` (it adds a warning) and the thresholds that clamp feedback to low priority are placeholders; change them only from this table, and not before there are at least 10 tracks.
+
+| Track | True BPM | Measured | Tempo confidence | Right? | True key | Measured | Key confidence | Right? |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 124 | 123.7 | not recorded | yes | not recorded | not recorded | not recorded | yes |
+| 2 (the example track) | 128 | 128 | 0.54 | yes | not verified | | | |
 
 ## Frontend: manual checks and polish (open)
 
 Checks that jsdom cannot do, to run in a browser against the running API:
-- Slice 4: the version page was checked by eye in light, dark and a narrow window (cards wrap, chart scrolls sideways). Still to check: VoiceOver with the `list-style: none` lists in the feedback cards, and contrast of the new cards, chart and feedback (`.note`, `.term`, `.meta`, `.axisText`, `.bandRange`, the badge, the borders and bars on the surface).
 
-- A real upload: the CORS preflight for the XHR (the `Authorization` header), `Retry-After` readable on a 429, the progress bar, and the version moving from pending through running to done at the 2 s pace.
-- Native dialog behaviour: modal focus, Esc, focus returning to the opener.
-- A VoiceOver check of the "Error:" prefix on field errors.
-- Contrast, in light and dark: the dimmed list while paging, tag chips and the filled active chip, muted hint text, the progress bar, status badges and the failure text.
-- The waveform: it draws and plays, a large file (a 100 MB WAV is decoded fully in memory), an AIFF in Chrome (expect the "could not draw" message), and the colours after a system theme switch.
-- The narrow layout of the version rows.
-- The track list once with more than 20 tracks, to see the dimmed state.
+- VoiceOver: the "Error:" prefix on a field error, the `list-style: none` lists in the feedback cards, and what the waveform's "Position" slider says. Only the Tracks page has been checked so far (its lists are announced with their counts).
+- One unexplained VoiceOver report: a track's genre text on the Tracks page was announced as "clickable" until the genre was edited from "classic" to "classical". Not reproduced or explained. If it comes back, note the browser, what VoiceOver said and the element in the inspector.
 
 Polish tasks:
 
-- One shared "describe failure" helper: `TrackFormDialog`, `DeleteTrackDialog` and `describeFailureWithWait` in `features/analyses` repeat it. Share the field stylesheet instead of importing it from `TextField`.
-- Share the stage and status text and the stage options (`features/analyses/labels.ts`) with `TrackVersions` and `UploadVersionDialog`, which still carry their own copies.
-- Check the label length limit in `openapi.json` and add it to the upload and edit dialogs if there is one. Check how `request_limits.py` turns `MAX_UPLOAD_MB` into bytes (1 MB = 1024 × 1024 is assumed).
-- Keyboard seeking for the waveform.
-- Optionally stub `HTMLCanvasElement.getContext` in `setup.ts` to silence the axe notices.
+- A backend script to dump `schema/openapi.json`, if a type the generated client lacks is needed.
 - Sanitized test fixtures (the real samples stay in `frontend/src/test/fixtures/private/`, git-ignored, as is `*.wav`).
-- Review `npm audit` and the `allowScripts` warning.
-- A backend script to dump `openapi.json`, if a type the generated client lacks is needed.
-- Slice 5 feature: a system, light and dark theme switch saved in the browser. It needs a `data-theme` override in `index.css` (tokens now follow only `prefers-color-scheme`) and the waveform repainting, since it reads its colours once.
-- One shared date formatter (`formatGeneratedAt` and `formatDateTime` in `AnalysisPage.tsx` duplicate each other) and a shared parse-helpers module (`metrics.ts` and `feedback.ts` repeat `isRecord` and the readers).
-- `formatBandName` is also used for non-band text; give it a more general name.
-- A rate-limit countdown on the feedback button, like the upload dialog has.
-- Stale-feedback detection for genre and platform, which needs the track.
-- Distinct copy for a transient provider failure (502 `provider_error`).
-- Fix the `GEMINI_MODEL=` value in `.env` and check `.env.example` for the same stray space.
 
-Later slices: 4 results is done (metrics cards, SVG spectrum chart, feedback cards with generate and regenerate), 5 polish and docs, including the theme switch above.
+Slices: 4 (results) is done. 5 (polish) is done apart from the Gemini quota decision and the pull request into dev.

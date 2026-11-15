@@ -124,4 +124,14 @@ describe('the waveform on the version page', () => {
 
     await waitFor(() => expect(getRememberedFile(7)).toBeUndefined())
   })
+
+  it('draws the waveform after the file is chosen again', async () => {
+    const { user } = renderPage()
+
+    await user.upload(await screen.findByLabelText('Choose the audio file again'), file)
+
+    expect(await screen.findByRole('img', { name: 'Waveform of mix2.wav' })).toBeInTheDocument()
+    expect(mock.loadBlob).toHaveBeenCalledWith(file)
+    expect(screen.queryByLabelText('Choose the audio file again')).not.toBeInTheDocument()
+  })
 })

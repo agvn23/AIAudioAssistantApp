@@ -59,8 +59,11 @@ export function formatKey(tonic: string | null, mode: string | null): string {
   return parts.length === 0 ? 'Not detected' : parts.join(' ')
 }
 
-/** "low_mid" becomes "Low mid". */
-export function formatBandName(name: string): string {
+/**
+ * An identifier from the server as words: "low_mid" becomes "Low mid". Used for
+ * spectrum band names and for feedback values the app has no fixed label for.
+ */
+export function formatIdentifier(name: string): string {
   const spaced = name.replace(/_/g, ' ').trim()
   if (spaced === '') return name
   return spaced.charAt(0).toUpperCase() + spaced.slice(1)

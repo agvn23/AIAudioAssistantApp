@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useForm, type FieldErrors } from 'react-hook-form'
-import { ApiError, describeError } from '../../api/errors'
+import { ApiError } from '../../api/errors'
 import type { Track } from '../../api/types'
 import { Button } from '../../components/Button'
 import { ErrorSummary, type ErrorSummaryItem } from '../../components/ErrorSummary'
@@ -8,7 +8,7 @@ import { SelectField } from '../../components/SelectField'
 import { SubmitButton } from '../../components/SubmitButton'
 import { TextAreaField } from '../../components/TextAreaField'
 import { TextField } from '../../components/TextField'
-import { formatWait } from '../auth/formatWait'
+import { describeFailureWithWait } from '../analyses/describeFailure'
 import { TagInput } from './TagInput'
 import {
   emptyFormValues,
@@ -56,19 +56,6 @@ function summaryFrom(errors: FieldErrors<FormFields>): ErrorSummaryItem[] {
     if (message) items.push({ id: field.id, message })
   }
   return items
-}
-
-/** A failure that is not tied to one field: shown as an alert inside the dialog. */
-function describeSaveFailure(error: unknown): string {
-  const message = describeError(error)
-  if (
-    error instanceof ApiError &&
-    error.code === 'rate_limited' &&
-    error.retryAfter !== undefined
-  ) {
-    return `${message} Wait about ${formatWait(error.retryAfter)}.`
-  }
-  return message
 }
 
 export interface TrackFormDialogProps {
@@ -151,7 +138,7 @@ export function TrackFormDialog({ track, onClose, onSaved }: TrackFormDialogProp
       setFocusToken((token) => token + 1)
       return
     }
-    setFormError(describeSaveFailure(error))
+    setFormError(describeFailureWithWait(error))
   }
 
   async function onValid(fields: FormFields) {

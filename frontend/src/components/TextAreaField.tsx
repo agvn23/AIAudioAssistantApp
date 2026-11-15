@@ -1,5 +1,5 @@
 import type { ComponentPropsWithRef } from 'react'
-import fieldStyles from './TextField.module.css'
+import fieldStyles from './Field.module.css'
 import styles from './TextAreaField.module.css'
 
 export interface TextAreaFieldProps extends Omit<

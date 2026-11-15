@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react'
-import { useForm } from 'react-hook-form'
-import type { Analysis, Stage } from '../../api/types'
+import { useForm, type FieldErrors } from 'react-hook-form'
+import type { Analysis } from '../../api/types'
 import { Button } from '../../components/Button'
 import { ErrorSummary, type ErrorSummaryItem } from '../../components/ErrorSummary'
 import { SelectField } from '../../components/SelectField'
@@ -8,6 +8,8 @@ import { SubmitButton } from '../../components/SubmitButton'
 import { TextField } from '../../components/TextField'
 import { formatWait } from '../auth/formatWait'
 import { useCountdown } from '../auth/useCountdown'
+import { validateLabel } from './labelRules'
+import { STAGE_OPTIONS, toStage } from './labels'
 import { describeUploadFailure, isLabelOnlyValidation, uploadRetryDelay } from './uploadErrors'
 import { getMaxUploadBytes } from './uploadLimit'
 import { ACCEPT_ATTRIBUTE, formatBytes, validateAudioFile } from './uploadRules'
@@ -21,19 +23,6 @@ interface FormFields {
 
 const FILE_ID = 'upload-file'
 const LABEL_ID = 'upload-label'
-
-const STAGES: readonly Stage[] = ['demo', 'mix', 'master']
-
-const STAGE_OPTIONS = [
-  { value: '', label: 'Not set' },
-  { value: 'demo', label: 'Demo' },
-  { value: 'mix', label: 'Mix' },
-  { value: 'master', label: 'Master' },
-]
-
-function toStage(value: string): Stage | null {
-  return STAGES.find((stage) => stage === value) ?? null
-}
 
 function isAbortError(cause: unknown): boolean {
   return (
@@ -120,6 +109,13 @@ export function UploadVersionDialog({ trackId, onClose, onUploaded }: UploadVers
     setFileError(null)
   }
 
+  function onInvalid(fieldErrors: FieldErrors<FormFields>) {
+    setFormError(null)
+    const message = fieldErrors.label?.message
+    setSummary(message ? [{ id: LABEL_ID, message: `Label: ${message}` }] : [])
+    setFocusToken((token) => token + 1)
+  }
+
   function handleFailure(error: unknown) {
     const delay = uploadRetryDelay(error)
     if (delay !== undefined) countdown.start(delay)
@@ -186,7 +182,7 @@ export function UploadVersionDialog({ trackId, onClose, onUploaded }: UploadVers
       </h2>
       <form
         noValidate
-        onSubmit={(event) => void handleSubmit(onValid)(event)}
+        onSubmit={(event) => void handleSubmit(onValid, onInvalid)(event)}
         className={styles.form}
       >
         <ErrorSummary errors={summary} focusToken={focusToken} />
@@ -231,7 +227,7 @@ export function UploadVersionDialog({ trackId, onClose, onUploaded }: UploadVers
           hint="Optional, for example “vocals up”."
           autoComplete="off"
           error={errors.label?.message}
-          {...register('label')}
+          {...register('label', { validate: validateLabel })}
         />
         {isSubmitting ? (
           <div className={styles.progress}>

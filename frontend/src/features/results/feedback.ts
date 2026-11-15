@@ -15,6 +15,8 @@
  * check for "no feedback yet" before parsing.
  */
 
+import { isRecord, readNumber } from '../../lib/parse'
+
 export interface FeedbackEvidence {
   metric: string
   value: number
@@ -47,14 +49,6 @@ export interface Feedback {
   items: FeedbackItem[]
   caveats: string[]
   meta?: FeedbackMeta
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function readNumber(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
 /** A string with some text in it. */

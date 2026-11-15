@@ -28,11 +28,23 @@ const analysis = {
   feedback: null as unknown,
 }
 
-function renderPage(body: object) {
+const track = {
+  id: 3,
+  title: 'Night Drive',
+  genre: 'house',
+  target_platform: 'spotify',
+  notes: null,
+  tags: [],
+  created_at: '2026-11-05T10:00:00Z',
+  updated_at: '2026-11-05T10:00:00Z',
+}
+
+function renderPage(body: object, trackBody: object = track) {
   tokenStore.set('tok-1')
   server.use(
     http.get(url('/users/me'), () => HttpResponse.json(account)),
     http.get(url('/analyses/7'), () => HttpResponse.json(body)),
+    http.get(url('/tracks/3'), () => HttpResponse.json(trackBody)),
   )
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const router = createMemoryRouter(routes, { initialEntries: ['/analyses/7'] })
@@ -77,5 +89,11 @@ describe('results on the version page', () => {
       await screen.findByText(/Results appear here once the analysis has finished/),
     ).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Loudness' })).not.toBeInTheDocument()
+  })
+
+  it('hints that the feedback is out of date when the genre of the track was changed', async () => {
+    renderPage({ ...analysis, feedback: sampleFeedback }, { ...track, genre: 'techno' })
+
+    expect(await screen.findByText(/The genre of this track was changed/)).toBeInTheDocument()
   })
 })

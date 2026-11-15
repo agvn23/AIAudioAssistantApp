@@ -1,24 +1,10 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
-import { ApiError, describeError } from '../../api/errors'
 import type { Track } from '../../api/types'
 import { Button } from '../../components/Button'
 import { SubmitButton } from '../../components/SubmitButton'
-import { formatWait } from '../auth/formatWait'
+import { describeFailureWithWait } from '../analyses/describeFailure'
 import styles from './DeleteTrackDialog.module.css'
 import { useDeleteTrack } from './useTracks'
-
-/** A failure shown as an alert inside the dialog. */
-function describeDeleteFailure(error: unknown): string {
-  const message = describeError(error)
-  if (
-    error instanceof ApiError &&
-    error.code === 'rate_limited' &&
-    error.retryAfter !== undefined
-  ) {
-    return `${message} Wait about ${formatWait(error.retryAfter)}.`
-  }
-  return message
-}
 
 export interface DeleteTrackDialogProps {
   track: Pick<Track, 'id' | 'title'>
@@ -58,7 +44,7 @@ export function DeleteTrackDialog({ track, onClose, onDeleted }: DeleteTrackDial
     try {
       await remove.mutateAsync(track.id)
     } catch (error) {
-      setFormError(describeDeleteFailure(error))
+      setFormError(describeFailureWithWait(error))
       return
     }
     closeDialog()

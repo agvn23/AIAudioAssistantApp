@@ -5,7 +5,10 @@ import { registerSessionExpiry } from './features/auth/sessionExpiry'
 import { queryClient } from './app/appQueryClient'
 import { Providers } from './app/providers'
 import { router } from './app/router'
+import { themeStore } from './theme/themeStore'
 import './index.css'
+
+themeStore.init()
 
 registerSessionExpiry({
   clearCache: () => queryClient.clear(),
