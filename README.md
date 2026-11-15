@@ -81,9 +81,19 @@ Loudness was compared against four independent meters (Youlean, the DAW's meter,
 | Loudness range | 4.3 LU | 4.3 LU |
 | True peak | +1.2 dBTP | +1.2 to +1.3 dBTP |
 
+RMS (the power average of both channels over the whole file) was compared with SPAN's RMS readout on three tracks, and on one of them with ffmpeg's `astats`:
+
+| | This project | Reference |
+|---|---|---|
+| Track A | -12.07 dBFS | SPAN -12.2 / -12.3 |
+| Track B | -12.09 dBFS | SPAN -11.5 / -11.5 |
+| Track C | -23.5 dBFS | SPAN -23.9 / -23.9, ffmpeg `astats` -23.50 |
+
+The differences are at most 0.6 dB and change sign from track to track. SPAN reads while the track plays, so a small difference is expected; the cause was not identified.
+
 Not verified yet, and flagged as such:
 
-- Spectrum bands, stereo width and correlation have not been compared against a meter. RMS disagrees with SPAN's live readout (-12.07 here against -13.6/-13.7) and is still being investigated.
+- Spectrum bands, stereo width and correlation have not been compared against a meter. Checks on synthetic signals pass (pink noise reads flat across the bands, white noise slopes up about 3 dB per octave, identical, inverted and unrelated channels give the expected correlation and width), but they test the definitions, not a meter. How to do the meter checks is in [`docs/DECISIONS.md`](docs/DECISIONS.md).
 - Dynamic range is an approximation with its own definition, so it is not comparable with DR14 meters.
 - Tempo and key were checked on two tracks (123.7 against a true 124 BPM with the key correct, and 128 BPM correct at confidence 0.54). The reliability thresholds that clamp low-confidence feedback are placeholders calibrated on that small sample.
 
@@ -315,7 +325,7 @@ Nothing here has been deployed yet. These notes follow from how the code is buil
 
 ## Roadmap
 
-- Verify spectrum, stereo and RMS against a meter; calibrate tempo and key reliability on more tracks, including half-time ones.
+- Verify spectrum and stereo against a meter; calibrate tempo and key reliability on more tracks, including half-time ones.
 - Set the shared feedback rate limit from the real Gemini free-tier quota (the 200/day default is a guess).
 - Genre reference curves for the spectrum.
 - Version comparison endpoint (`GET /tracks/{id}/compare`) and a view for it.

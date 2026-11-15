@@ -108,6 +108,7 @@ A running log of project decisions. Add new entries at the bottom of the table w
 | 2026-11-14 | Frontend: `allowScripts` in `package.json` sets `msw` to false and `fsevents@2.3.3` to true | `msw`'s postinstall only acts when `package.json` has `msw.workerDirectory`, which this project does not use. `fsevents`' install script is `node-gyp rebuild`; it is the optional macOS file watcher for Vite. It is pinned to 2.3.3, so a new version needs a review. Corrects the 2026-11-11 note, which treated `fsevents` as having no install script |
 | 2026-11-14 | Frontend: verified that the frontend converts MB with 1024 × 1024, as `backend/app/request_limits.py` does (the request body gets 1 MB of multipart room on top). The stray space in `GEMINI_MODEL` is fixed in `.env`, and `.env.example` is clean | Closes two items of the polish list |
 | 2026-11-14 | Licence: MIT for the project's own code (`LICENSE`, copyright agvn23) | essentia, which the analysis needs, is `AGPL-3.0-only` (`pip show essentia`). The repository only requires it and does not contain it, so MIT covers the code written here. Anyone who runs or redistributes the whole project with essentia has to follow essentia's own terms. The README says so. This is a choice for a portfolio project, not legal advice |
+| 2026-11-14 | RMS checked. `rms_dbfs` (power average over both channels, whole file) equals ffmpeg's `astats` on one track (-23.5 vs -23.50) and is within 0.6 dB of SPAN's RMS readout on three tracks (ours vs SPAN left/right: -12.07 vs -12.2/-12.3, -12.09 vs -11.5/-11.5, -23.5 vs -23.9/-23.9) | The earlier note "ours -12.07 vs SPAN -13.6/-13.7" could not be reproduced and is withdrawn: the same file reads -12.2/-12.3 in SPAN. The sign of the difference changes between tracks, so it is not a bias. The cause of the remaining difference is not identified; SPAN reads during playback, which is not a whole-file power average. SPAN's "Max Crest Factor" is a different measurement and was not compared. SPAN's true-peak readings on the same three tracks (+1.3/+1.2, -0.9/-0.8, -2.5/-2.8) are noted for a comparison with the stored `true_peak_dbtp` |
 
 ## Design principles
 
@@ -118,13 +119,51 @@ A running log of project decisions. Add new entries at the bottom of the table w
 
 ## Open questions
 
-- Is essentia accurate enough for BPM and key on real tracks, and does `edma` or `bgate` suit the genres you work in? First track: BPM 123.7 vs 124, key correct. Second track (the example track): BPM 128 correct at confidence 0.54, key not yet verified. Test 5-10 more with known values, including a half-time one, and log the results here.
-- Loudness, LRA and true peak are verified against Youlean, the DAW meter, SPAN and WLM on one track (2026-11-02): integrated -10.4 vs -10.3/-10.5 LUFS, short-term max -8.3 vs -8.3, momentary max -7.8 vs -7.7/-7.8, LRA 4.3 vs 4.3, true peak +1.2 vs +1.2 to +1.3. An earlier comparison used an older render of the file and is void. Still to check: spectrum bands, stereo width and correlation, and RMS (ours -12.07 vs SPAN -13.6/-13.7 live readout). DR is not comparable (different definitions).
+- Is essentia accurate enough for BPM and key on real tracks, and does `edma` or `bgate` suit the genres you work in? First track: BPM 123.7 vs 124, key correct. Second track (the example track): BPM 128 correct at confidence 0.54, key not yet verified. Test 5-10 more with known values, including a half-time one, and log the results in the table below.
+- Loudness, LRA and true peak are verified against Youlean, the DAW meter, SPAN and WLM on one track (2026-11-02): integrated -10.4 vs -10.3/-10.5 LUFS, short-term max -8.3 vs -8.3, momentary max -7.8 vs -7.7/-7.8, LRA 4.3 vs 4.3, true peak +1.2 vs +1.2 to +1.3. An earlier comparison used an older render of the file and is void. RMS was checked on 2026-11-14 (see the table). Still to check against a meter: spectrum bands, and stereo width and correlation (procedures below). DR is not comparable (different definitions).
 - Set `RATE_LIMIT_FEEDBACK_GLOBAL` from the actual Gemini free-tier quota (the 200/day default is a guess), and review the other rate-limit and quota numbers once the frontend exists and real usage is visible.
 - Deployment: where it will run, which reverse proxy enforces the body limit, and whether a single process is still enough (the rate limiter, analysis slots and background tasks all assume one).
 - Database: SQLite to start; move to Postgres only if needed.
 - File retention: audio is deleted after analysis, only metrics are kept. Decide whether stored metrics and feedback should expire.
 - Gemini free tier returned a 503 on 2026-11-11 (shown as 502 `provider_error`), and a retry worked. The cause is not determined (overload, or a stray space in `GEMINI_MODEL=`, since fixed). The frontend now has its own copy for `provider_error`. If it recurs, consider a different model.
+
+## Measurement checks still open: how to do them
+
+Written 2026-11-14. The tolerances are proposals made before there is any data. Change them when real data says so, and write down why.
+
+### Spectrum bands
+
+Done, with synthetic signals (60 s of noise at 44.1 kHz, run as a script; these checks are not in the test suite yet): pink noise reads 0 dB in every band within 0.4 dB (the sub band is loosest, +0.37 dB) with a tilt of -3.01; white noise has a tilt of 0.00 and bands that rise about 3 dB per octave; changing the level changes nothing. This tests the definitions, not a meter.
+
+To do:
+- Put these checks into the test suite.
+- Load a finished track into an analyser (SPAN) and average its spectrum over the whole track, with the slope setting at 0 dB per octave. Compare the shape with the band values: which bands are strongest, and the overall slope against `tilt_db_per_octave`. Do not expect per-band agreement in dB, because the analyser's resolution and averaging differ. A shape that disagrees by more than about 1 dB per octave is worth investigating.
+
+### Stereo width and correlation
+
+Done, with synthetic signals: identical channels give correlation 1 and width 0; inverted channels -1 and 1; unrelated channels of equal level 0 and 0.5; a one-sided signal 0 and 0.5.
+
+To do:
+- `side_to_mid_db` can be checked with ffmpeg alone. It is the side RMS minus the mid RMS, both in dB over the whole file. Run each command and take the last `RMS level dB` line (the overall value):
+
+```
+ffmpeg -hide_banner -nostats -i "samples/FILE.wav" -af "aresample=44100,pan=mono|c0=0.5*c0+0.5*c1,astats" -f null - 2>&1 | grep "RMS level dB" | tail -1
+ffmpeg -hide_banner -nostats -i "samples/FILE.wav" -af "aresample=44100,pan=mono|c0=0.5*c0-0.5*c1,astats" -f null - 2>&1 | grep "RMS level dB" | tail -1
+```
+
+  The first line is the mid, the second the side. A proposal for agreement is within 0.1 dB. These commands have not been run yet.
+- `phase_correlation` against the correlation meter of the DAW or SPAN, read over the whole track. A meter smooths over time and this value is one number for the whole file, so expect only a rough agreement (about 0.1) on steady material.
+- `width` comes from the same energies as `side_to_mid_db` (`width = r / (1 + r)` with `r = 10^(side_to_mid_db / 10)`), so it needs no separate meter. It is dominated by loud, centred low frequencies, so it reads small for most mixes.
+- `width` is stored with two decimals, so a value below 0.005 is stored as 0.0. `side_to_mid_db` keeps the detail.
+
+### Tempo and key
+
+Log of tracks with a known BPM and key. Add 8 to 10 tracks, including at least two where half-time or double-time is plausible. Run the CLI without `--skip-tempo-key`. `LOW_CONFIDENCE = 0.3` in `analysis/metrics.py` (it adds a warning) and the thresholds that clamp feedback to low priority are placeholders; change them only from this table, and not before there are at least 10 tracks.
+
+| Track | True BPM | Measured | Tempo confidence | Right? | True key | Measured | Key confidence | Right? |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 124 | 123.7 | not recorded | yes | not recorded | not recorded | not recorded | yes |
+| 2 (the example track) | 128 | 128 | 0.54 | yes | not verified | | | |
 
 ## Frontend: manual checks and polish (open)
 
@@ -138,4 +177,4 @@ Polish tasks:
 - A backend script to dump `schema/openapi.json`, if a type the generated client lacks is needed.
 - Sanitized test fixtures (the real samples stay in `frontend/src/test/fixtures/private/`, git-ignored, as is `*.wav`).
 
-Slices: 4 (results) is done. 5 (polish) is done apart from the documentation: README, `CLAUDE.md`, the calibration notes and the deployment notes.
+Slices: 4 (results) is done. 5 (polish) is done apart from the Gemini quota decision and the pull request into dev.

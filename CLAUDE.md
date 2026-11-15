@@ -78,7 +78,7 @@ Real test samples for the frontend stay in `frontend/src/test/fixtures/private/`
 - Never use `--force` or `--legacy-peer-deps`. If versions conflict, show them and choose a fix together.
 
 ## Current slice (update as you go)
-Week 1 (analysis engine) is complete: `analysis/metrics.py` (`analyze_file`) assembles the full metrics JSON and the CLI prints it. Loudness, LRA and true peak are verified against Youlean, the DAW meter, SPAN and WLM on one track. Still open: spectrum bands, stereo width/correlation and RMS are not yet spot-checked against a meter (RMS: ours -12.07 vs SPAN -13.6/-13.7); tempo/key reliability thresholds are calibrated on one track (two checked in total).
+Week 1 (analysis engine) is complete: `analysis/metrics.py` (`analyze_file`) assembles the full metrics JSON and the CLI prints it. Loudness, LRA and true peak are verified against Youlean, the DAW meter, SPAN and WLM on one track. RMS is checked (equal to ffmpeg's astats on one track, within 0.6 dB of SPAN on three). Still open: spectrum bands and stereo width/correlation are not yet spot-checked against a meter (procedures in `docs/DECISIONS.md`); tempo/key reliability thresholds are calibrated on one track (two checked in total).
 Week 2 (API) is complete: slices 1-5 done (config/db/auth, tracks and tags, upload and analysis, AI feedback, hardening with account deletion, error envelope, CORS, limits, rate limits, Alembic, README). 373 tests passing, 1 skipped (an opt-in live test).
 Week 3 (frontend): slices 0 to 4 are done and merged into dev.
 - Slice 0: Vite + React + strict TypeScript, Vitest + Testing Library + MSW 2, typed client generated from `schema/openapi.json`, `ApiError` normalisation, sessionStorage token store, router shell.
@@ -87,13 +87,13 @@ Week 3 (frontend): slices 0 to 4 are done and merged into dev.
 - Slice 3 (upload and polling, PR #10): XHR upload with progress and validation, version list with polling, `/analyses/:id` version page (status, edit, delete), waveform from the local file in-session only.
 - Slice 4 (results): runtime parsers for metrics and feedback, metrics cards, hand-written SVG spectrum chart with a hidden table, feedback cards with generate and regenerate.
 Week 3 (frontend): slice 5 (polish) is built and pushed on `frontend/slice-5-polish`; the code work is done. It adds the theme switch (system, light, dark), a repainting waveform with a keyboard position slider, "choose the audio file again", a contrast review, shared helpers, the label limit, the feedback rate-limit countdown and stale-feedback hint for genre and platform, and the `npm audit` and `allowScripts` review. 79 test files, 821 tests passing; typecheck, lint, format:check and build are clean; `npm audit --omit=dev` reports 0 vulnerabilities. Manual checks passed: upload end to end, dialogs, a 100 MB waveform, the AIFF message, an OS theme switch, narrow rows and paging. VoiceOver is checked on the Tracks page only. The decisions are in `docs/DECISIONS.md`.
-What remains of slice 5 is the documentation: `docs/DECISIONS.md` is done; `CLAUDE.md` (this file), a check of `docs/API.md`, the README (frontend setup, screenshots, deployment notes, accessibility statement), the calibration notes and the Gemini quota numbers are still to do. Then the pull request into dev.
-Next after that: the open checks in `docs/DECISIONS.md` (VoiceOver on the remaining pages, the unexplained "clickable" report), spectrum, stereo and RMS against a meter, more tempo and key tracks, the Gemini free-tier quota for `RATE_LIMIT_FEEDBACK_GLOBAL` (200/day is a guess), a recheck of `npm audit` before submission, and choosing a licence.
+What remains of slice 5: the Gemini quota decision (`RATE_LIMIT_FEEDBACK_GLOBAL` and the model, see `docs/DECISIONS.md`), then the pull request into dev. The documentation is otherwise done.
+Next after that: the open checks in `docs/DECISIONS.md` (VoiceOver on the remaining pages, the unexplained "clickable" report), spectrum and stereo against a meter, more tempo and key tracks, a recheck of `npm audit` before submission, and choosing a licence.
 
 ## Plan
 1. Analysis engine + metrics JSON (done)
 2. FastAPI API: accounts and tokens, Track/Tag/Analysis CRUD, upload + analysis, LLM feedback, hardening (done; see `docs/API.md`)
-3. React UI: upload, waveform, results cards, track list with edit/delete (done in slices 0 to 5, documentation still open; the optional follow-up chat is not built)
+3. React UI: upload, waveform, results cards, track list with edit/delete (done in slices 0 to 5; the optional follow-up chat is not built)
 4. Final hardening and polish: deployment notes, README screenshots, calibration of the open measurement checks (in progress)
 
 ## Out of scope for now
