@@ -16,6 +16,10 @@ TEMPERATURE = 0.2
 
 
 class FeedbackGenerator(Protocol):
+    """A generator may also expose `last_model_version: str | None`, the model name the
+    provider reported for the most recent call (None when unknown or when that call failed).
+    It is optional: service.py reads it with getattr, so a generator without it still works."""
+
     model_name: str
 
     def generate(self, *, system_prompt: str, user_message: str, json_schema: dict[str, Any]) -> str:
@@ -52,6 +56,15 @@ def _translate(exc: Exception) -> FeedbackError:
     return FeedbackError("provider_error", "The AI provider returned an error. Try again later.")
 
 
+def _reported_model_version(response: Any) -> str | None:
+    """The `model_version` of a Gemini response as clean text, or None when it is missing or
+    not a non-empty string."""
+    value = getattr(response, "model_version", None)
+    if not isinstance(value, str):
+        return None
+    return value.strip() or None
+
+
 class GeminiGenerator:
     """Google Gemini through the `google-genai` SDK, with JSON-schema constrained output."""
 
@@ -65,6 +78,9 @@ class GeminiGenerator:
         client: Any | None = None,
     ) -> None:
         self.model_name = model
+        # What Gemini says answered the most recent call. It can differ from `model_name`
+        # (on 2026-11-15 a request for gemini-3.5-flash was answered by gemini-3.6-flash).
+        self.last_model_version: str | None = None
         self._max_output_tokens = max_output_tokens
         if client is None:
             from google import genai
@@ -77,6 +93,7 @@ class GeminiGenerator:
         self._client = client
 
     def generate(self, *, system_prompt: str, user_message: str, json_schema: dict[str, Any]) -> str:
+        self.last_model_version = None  # a failed call must not leave the previous answer's value
         config = {
             "system_instruction": system_prompt,
             "response_mime_type": "application/json",
@@ -90,6 +107,7 @@ class GeminiGenerator:
             )
         except Exception as exc:
             raise _translate(exc) from exc
+        self.last_model_version = _reported_model_version(response)
         return getattr(response, "text", None) or ""
 
 

@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -120,7 +120,7 @@ def test_stored_feedback_dumps_to_plain_json():
         **Feedback.model_validate(feedback()).model_dump(),
         meta=FeedbackMeta(
             model="some-model",
-            generated_at=datetime(2026, 10, 30, 12, 0, tzinfo=timezone.utc),
+            generated_at=datetime(2026, 10, 30, 12, 0, tzinfo=UTC),
             context_used=FeedbackContext(genre="pop rock", target_platform="spotify", stage=Stage.DEMO),
         ),
     )
@@ -132,6 +132,50 @@ def test_stored_feedback_dumps_to_plain_json():
     assert dumped["meta"]["feedback_schema_version"] == 1
     # And what we stored still validates when read back
     StoredFeedback.model_validate(dumped)
+
+
+# --- model_version in the meta ---------------------------------------------------------------
+
+
+def test_model_version_is_optional_and_defaults_to_none():
+    meta = FeedbackMeta(
+        model="some-model",
+        generated_at=datetime(2026, 11, 16, 12, 0, tzinfo=UTC),
+        context_used=FeedbackContext(),
+    )
+    assert meta.model_version is None
+
+
+def test_feedback_stored_before_model_version_existed_still_validates():
+    old = feedback() | {
+        "meta": {
+            "model": "gemini-3.5-flash",
+            "generated_at": "2026-11-10T12:00:00Z",
+            "context_used": {"genre": "house", "target_platform": "spotify", "stage": "mix"},
+            "feedback_schema_version": 1,
+        }
+    }
+    stored = StoredFeedback.model_validate(old)
+    assert stored.meta.model == "gemini-3.5-flash"
+    assert stored.meta.model_version is None
+    assert stored.meta.feedback_schema_version == 1
+
+
+def test_model_version_survives_a_dump_and_read_back():
+    stored = StoredFeedback(
+        **Feedback.model_validate(feedback()).model_dump(),
+        meta=FeedbackMeta(
+            model="some-model",
+            model_version="some-model-001",
+            generated_at=datetime(2026, 11, 16, 12, 0, tzinfo=UTC),
+            context_used=FeedbackContext(stage=Stage.MIX),
+        ),
+    )
+    dumped = stored.model_dump(mode="json")
+    json.dumps(dumped)
+    assert dumped["meta"]["model"] == "some-model"
+    assert dumped["meta"]["model_version"] == "some-model-001"
+    assert StoredFeedback.model_validate(dumped).meta.model_version == "some-model-001"
 
 
 # --- settings -------------------------------------------------------------------------------

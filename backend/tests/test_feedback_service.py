@@ -8,7 +8,7 @@ from app.models import Stage
 from app.services.feedback.errors import FeedbackError
 from app.services.feedback.prompt import SYSTEM_PROMPT
 from app.services.feedback.schemas import Feedback, StoredFeedback
-from app.services.feedback.service import MAX_ATTEMPTS, generate_feedback
+from app.services.feedback.service import MAX_ATTEMPTS, MAX_MODEL_VERSION_CHARS, generate_feedback
 
 EXAMPLE = json.loads((Path(__file__).parent / "data" / "example_metrics.json").read_text())
 
@@ -29,6 +29,22 @@ class FakeGenerator:
         result = self.outputs.pop(0)
         if isinstance(result, Exception):
             raise result
+        return result
+
+
+class VersionedGenerator(FakeGenerator):
+    """Like GeminiGenerator: `last_model_version` is cleared at the start of every call and set
+    again after a call that returned an answer. `versions` holds one value per answer."""
+
+    def __init__(self, *outputs, versions):
+        super().__init__(*outputs)
+        self.versions = list(versions)
+        self.last_model_version = None
+
+    def generate(self, **kwargs):
+        self.last_model_version = None
+        result = super().generate(**kwargs)
+        self.last_model_version = self.versions.pop(0)
         return result
 
 
@@ -109,6 +125,44 @@ def test_items_on_an_unreliable_tempo_are_clamped_to_low():
     assert result["items"][0]["priority"] == "low"
 
 
+# --- model_version -------------------------------------------------------------------------
+
+
+def test_model_version_is_stored_next_to_the_model_name():
+    generator = VersionedGenerator(output(), versions=["fake-model-001"])
+    result = run(generator)
+
+    assert result["meta"]["model"] == "fake-model"
+    assert result["meta"]["model_version"] == "fake-model-001"
+    assert StoredFeedback.model_validate(result).meta.model_version == "fake-model-001"
+
+
+def test_a_generator_without_model_version_gives_none():
+    result = run(FakeGenerator(output()))  # has no last_model_version attribute at all
+    assert result["meta"]["model_version"] is None
+
+
+def test_model_version_of_the_kept_attempt_is_stored():
+    generator = VersionedGenerator("not json", output(), versions=["v-first", "v-second"])
+    result = run(generator)
+
+    assert len(generator.calls) == 2
+    assert result["meta"]["model_version"] == "v-second"
+
+
+@pytest.mark.parametrize("value", [None, "", "   ", 5])
+def test_unusable_model_versions_are_stored_as_none(value):
+    generator = FakeGenerator(output())
+    generator.last_model_version = value
+    assert run(generator)["meta"]["model_version"] is None
+
+
+def test_a_very_long_model_version_is_cut():
+    generator = FakeGenerator(output())
+    generator.last_model_version = "v" * (MAX_MODEL_VERSION_CHARS + 50)
+    assert run(generator)["meta"]["model_version"] == "v" * MAX_MODEL_VERSION_CHARS
+
+
 # --- retries -------------------------------------------------------------------------------
 
 
@@ -156,6 +210,7 @@ def test_provider_errors_pass_through_without_a_retry():
         run(generator)
     assert info.value.code == "timeout"
     assert len(generator.calls) == 1
+
 
 # --- stage rule and platform reference -----------------------------------------------------
 

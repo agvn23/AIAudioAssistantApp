@@ -59,6 +59,54 @@ def test_empty_response_becomes_empty_text():
     assert call(make(FakeClient(result=SimpleNamespace(text=None)))) == ""
 
 
+# --- model_version -------------------------------------------------------------------------
+
+
+def test_model_version_is_recorded_from_the_response():
+    client = FakeClient(result=SimpleNamespace(text="{}", model_version="gemini-test-001"))
+    generator = make(client)
+    assert generator.last_model_version is None  # nothing asked yet
+
+    call(generator)
+
+    assert generator.last_model_version == "gemini-test-001"
+    assert generator.model_name == "gemini-test"  # the name asked for is unchanged
+
+
+def test_model_version_is_stripped():
+    generator = make(
+        FakeClient(result=SimpleNamespace(text="{}", model_version="  gemini-test-001 "))
+    )
+    call(generator)
+    assert generator.last_model_version == "gemini-test-001"
+
+
+def test_model_version_is_none_when_the_response_has_none():
+    generator = make(FakeClient(result=SimpleNamespace(text="{}")))
+    call(generator)
+    assert generator.last_model_version is None
+
+
+@pytest.mark.parametrize("value", [5, "", "   ", ["gemini-test-001"]])
+def test_unusable_model_versions_are_recorded_as_none(value):
+    generator = make(FakeClient(result=SimpleNamespace(text="{}", model_version=value)))
+    call(generator)
+    assert generator.last_model_version is None
+
+
+def test_model_version_is_cleared_when_the_next_call_fails():
+    client = FakeClient(result=SimpleNamespace(text="{}", model_version="gemini-test-001"))
+    generator = make(client)
+    call(generator)
+    assert generator.last_model_version == "gemini-test-001"
+
+    client.models.error = ValueError("boom")
+    with pytest.raises(FeedbackError):
+        call(generator)
+
+    assert generator.last_model_version is None
+
+
 class ReadTimeout(Exception):
     """Same name pattern as httpx's timeout exceptions."""
 
