@@ -94,7 +94,7 @@ The differences are at most 0.6 dB and change sign from track to track. SPAN rea
 Not verified yet, and flagged as such:
 
 - Spectrum bands, stereo width and correlation have not been compared against a meter. Checks on synthetic signals pass (pink noise reads flat across the bands, white noise slopes up about 3 dB per octave, identical, inverted and unrelated channels give the expected correlation and width), but they test the definitions, not a meter. How to do the meter checks is in [`docs/DECISIONS.md`](docs/DECISIONS.md).
-- Known gap: the `possible_clipping` warning counts samples at or near full scale, so it does not see inter-sample overs. One of my tracks has a true peak of +1.2 dBTP, no clipped samples and no warning. A warning for a true peak above 0 dBTP is planned.
+- Inter-sample overs: `possible_clipping` counts samples at or near full scale and does not see them, so a separate `true_peak_above_0dbtp` warning fires when the true peak is above 0 dBTP. Analyses made before 2026-11-16 do not have that warning.
 - Dynamic range is an approximation with its own definition, so it is not comparable with DR14 meters.
 - Tempo and key were checked on two tracks (123.7 against a true 124 BPM with the key correct, and 128 BPM correct at confidence 0.54). The reliability thresholds that clamp low-confidence feedback are placeholders calibrated on that small sample.
 
