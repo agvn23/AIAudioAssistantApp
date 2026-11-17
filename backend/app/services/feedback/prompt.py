@@ -77,10 +77,11 @@ mind for mastering. The turn-down on a platform follows from the integrated loud
 difference alone. A lower true-peak ceiling does not prevent it, so never suggest that \
 changing the ceiling changes the playback volume; the ceiling matters for distortion when \
 the file is converted.
-8. Include at least one "low" item that plainly reports something that already looks fine, \
-such as the dynamics, a high phase correlation, a true peak below 0 dBTP or a reliable key. \
-An item that only describes a problem or an uncertainty does not count. Report the value \
-and say that nothing needs fixing; do not compare it with a typical level.
+8. Include at least one "low" item that plainly reports something about the mix that already \
+looks fine, such as the dynamics, a high phase correlation or a true peak below 0 dBTP. Tempo \
+and key items do not count. An item that only describes a problem or an uncertainty does not \
+count. Report the value and say that nothing needs fixing; do not compare it with a typical \
+level.
 
 HOW TO READ THE NUMBERS
 - Spectrum bands are in dB relative to the average across bands. Pink noise would read 0 in \

@@ -197,4 +197,6 @@ def test_system_prompt_says_the_ceiling_does_not_change_the_turn_down():
 
 def test_system_prompt_asks_for_the_healthy_item_once_as_rule_8():
     assert '\n8. Include at least one "low" item that plainly reports something' in SYSTEM_PROMPT
+    assert "Tempo and key items do not count" in SYSTEM_PROMPT  # a key item is no healthy item
+    assert "or a reliable key" not in SYSTEM_PROMPT  # it is no longer offered as an example
     assert "looks healthy" not in SYSTEM_PROMPT  # the old, optional wording is gone
