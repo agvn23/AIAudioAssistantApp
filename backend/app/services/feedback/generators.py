@@ -5,6 +5,8 @@ so they work the same for every provider."""
 from __future__ import annotations
 
 import logging
+import time
+from collections.abc import Callable
 from typing import Any, Protocol
 
 from ...config import Settings
@@ -39,6 +41,12 @@ def _is_timeout(exc: BaseException | None) -> bool:
             return True
         exc = exc.__cause__ or exc.__context__
     return False
+
+
+def _is_unavailable(exc: BaseException) -> bool:
+    """True for the provider answering 503 (overloaded). Only this is worth retrying: a timeout
+    already took the whole time limit, and a 429 means the quota or rate limit is used up."""
+    return getattr(exc, "code", None) == 503
 
 
 def _translate(exc: Exception) -> FeedbackError:
@@ -76,8 +84,15 @@ class GeminiGenerator:
         timeout_seconds: float,
         max_output_tokens: int,
         client: Any | None = None,
+        retries: int = 0,
+        retry_delay_seconds: float = 0.0,
+        sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         self.model_name = model
+        # How often a 503 is retried and how long the first wait is; each wait doubles.
+        self.retries = retries
+        self.retry_delay_seconds = retry_delay_seconds
+        self._sleep = sleep
         # What Gemini says answered the most recent call. It can differ from `model_name`
         # (on 2026-11-15 a request for gemini-3.5-flash was answered by gemini-3.6-flash).
         self.last_model_version: str | None = None
@@ -101,12 +116,26 @@ class GeminiGenerator:
             "max_output_tokens": self._max_output_tokens,
             "temperature": TEMPERATURE,
         }
-        try:
-            response = self._client.models.generate_content(
-                model=self.model_name, contents=user_message, config=config
-            )
-        except Exception as exc:
-            raise _translate(exc) from exc
+        retry = 0
+        while True:
+            try:
+                response = self._client.models.generate_content(
+                    model=self.model_name, contents=user_message, config=config
+                )
+                break
+            except Exception as exc:
+                if retry < self.retries and _is_unavailable(exc):
+                    delay = self.retry_delay_seconds * 2**retry
+                    retry += 1
+                    logger.warning(
+                        "feedback provider unavailable (code=503); retry %d of %d in %.1f s",
+                        retry,
+                        self.retries,
+                        delay,
+                    )
+                    self._sleep(delay)
+                    continue
+                raise _translate(exc) from exc
         self.last_model_version = _reported_model_version(response)
         return getattr(response, "text", None) or ""
 
@@ -128,4 +157,6 @@ def build_generator(settings: Settings) -> FeedbackGenerator:
         model=model,
         timeout_seconds=settings.feedback_timeout_seconds,
         max_output_tokens=settings.feedback_max_tokens,
+        retries=settings.feedback_provider_retries,
+        retry_delay_seconds=settings.feedback_provider_retry_delay_seconds,
     )

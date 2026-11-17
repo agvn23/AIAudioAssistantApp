@@ -247,6 +247,7 @@ All backend settings are environment variables, optionally in `backend/.env`. Se
 | `FEEDBACK_PROVIDER` | `gemini` | Only `gemini` is implemented |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | unset | Feedback provider settings |
 | `FEEDBACK_TIMEOUT_SECONDS`, `FEEDBACK_MAX_TOKENS` | `60`, `8192` | Feedback call limits |
+| `FEEDBACK_PROVIDER_RETRIES`, `FEEDBACK_PROVIDER_RETRY_DELAY_SECONDS` | `2`, `2` | Retries of a provider 503, with the wait doubling (2 s, then 4 s); timeouts and other errors are not retried |
 
 Rates are written `COUNT/PERIOD` with the period one of `second`, `minute`, `hour` or `day`. A typo fails at startup.
 
