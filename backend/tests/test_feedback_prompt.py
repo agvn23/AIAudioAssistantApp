@@ -8,6 +8,7 @@ from app.models import Stage
 from app.services.feedback.prompt import (
     KEY_MIN_CONFIDENCE,
     MAX_CONTEXT_CHARS,
+    SYSTEM_PROMPT,
     TEMPO_MIN_CONFIDENCE,
     build_llm_input,
     build_user_message,
@@ -169,3 +170,31 @@ def test_evidence_space_holds_measurements_and_reference(metrics):
     assert space["loudness"]["true_peak_dbtp"] == 1.2
     assert space["reference"]["integrated_lufs_difference"] == 3.6
     assert "reference" not in evidence_space(build(metrics, target_platform="club"))
+
+
+# --- system prompt -------------------------------------------------------------------------
+# These pin the wording added on 2026-11-17 (see docs/DECISIONS.md) so that it is not lost by
+# accident. They say nothing about how well a model follows it: only a run can show that.
+
+
+def test_system_prompt_numbers_its_rules_one_to_eight():
+    for number in range(1, 9):
+        assert SYSTEM_PROMPT.count(f"\n{number}. ") == 1
+    assert "\n9. " not in SYSTEM_PROMPT
+
+
+def test_system_prompt_ties_platform_claims_to_the_reference_section():
+    assert (
+        'Without a "reference" section, do not say how a platform, venue or format treats '
+        "loudness or peaks"
+    ) in SYSTEM_PROMPT
+    assert "the 0 dBTP true-peak limit described under HOW TO READ THE NUMBERS" in SYSTEM_PROMPT
+
+
+def test_system_prompt_says_the_ceiling_does_not_change_the_turn_down():
+    assert "A lower true-peak ceiling does not prevent it" in SYSTEM_PROMPT
+
+
+def test_system_prompt_asks_for_the_healthy_item_once_as_rule_8():
+    assert '\n8. Include at least one "low" item that plainly reports something' in SYSTEM_PROMPT
+    assert "looks healthy" not in SYSTEM_PROMPT  # the old, optional wording is gone
