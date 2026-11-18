@@ -89,7 +89,7 @@ def test_a_declared_content_length_over_the_limit_is_rejected_before_the_route_r
 
 
 def test_a_chunked_body_is_cut_off_once_it_goes_over_the_limit():
-    app, calls = make_app(lambda method, path: 10)
+    app, _ = make_app(lambda method, path: 10)
     status, body = call_asgi(app, chunks=[b"123456", b"78901"])  # 11 bytes, no Content-Length
     assert status == 413
     assert body == {"error": {"code": "payload_too_large", "message": "Request body is too large"}}
