@@ -11,8 +11,11 @@ def probe_file(path: str, ffprobe_path: str = "ffprobe", timeout: float = 30) ->
     """Read basic stream facts with ffprobe (ships with ffmpeg)."""
     args = [
         ffprobe_path, "-v", "error", "-select_streams", "a:0",
-        "-show_entries", "stream=sample_rate,channels,bits_per_raw_sample,bits_per_sample"
-                         ":format=duration,format_name",
+        "-show_entries",
+        (
+            "stream=sample_rate,channels,bits_per_raw_sample,bits_per_sample"
+            ":format=duration,format_name"
+        ),
         "-of", "json", path,
     ]
     try:

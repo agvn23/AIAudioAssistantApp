@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from itertools import pairwise
 
 import numpy as np
 from scipy.signal import welch
@@ -65,7 +66,7 @@ def _tilt(freqs: np.ndarray, psd: np.ndarray) -> float:
     edges = edges[edges <= 16000.0]
     xs: list[float] = []
     ys: list[float] = []
-    for lo, hi in zip(edges[:-1], edges[1:], strict=True):
+    for lo, hi in pairwise(edges):
         mask = (freqs >= lo) & (freqs < hi)
         if not mask.any():
             continue

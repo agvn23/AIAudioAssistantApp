@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 TONICS = ("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
 
 _ENHARMONIC_TO_SHARP = {
@@ -27,14 +29,14 @@ def normalize_mode(scale: str | None) -> str | None:
 
 
 def normalize_rhythm_confidence(raw: float) -> float:
-    if raw != raw or raw <= 0:  # NaN or non-positive
+    if math.isnan(raw) or raw <= 0:  # NaN or non-positive
         return 0.0
     return min(1.0, raw / RHYTHM_CONFIDENCE_MAX)
 
 
 def normalize_key_strength(raw: float) -> float:
     """KeyExtractor strength is a correlation-like value; clamp it into 0..1."""
-    if raw != raw or raw <= 0:
+    if math.isnan(raw) or raw <= 0:
         return 0.0
     return min(1.0, raw)
 

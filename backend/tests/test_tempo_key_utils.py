@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from analysis.tempo_key_utils import (
@@ -44,3 +45,15 @@ def test_half_double_alternatives():
     assert half_double_alternatives(128) == [64, 256]
     assert half_double_alternatives(170) == [85]
     assert half_double_alternatives(60) == [120]
+
+
+@pytest.mark.parametrize("nan", [float("nan"), np.float32("nan"), np.float64("nan")])
+def test_nan_gives_zero_confidence(nan):
+    assert normalize_rhythm_confidence(nan) == 0.0
+    assert normalize_key_strength(nan) == 0.0
+
+
+@pytest.mark.parametrize("value", [float("inf"), np.float32("inf")])
+def test_infinity_is_clamped_to_one(value):
+    assert normalize_rhythm_confidence(value) == 1.0
+    assert normalize_key_strength(value) == 1.0
