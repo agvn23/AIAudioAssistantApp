@@ -55,6 +55,15 @@ def test_request_is_built_from_the_arguments():
     assert config["max_output_tokens"] == 123
 
 
+def test_the_request_has_no_sampling_parameters():
+    # Google ignores them on the current models and rejects them on later ones, so they must
+    # not come back by accident (see docs/DECISIONS.md, 2026-11-17).
+    client = FakeClient(result=SimpleNamespace(text="{}"))
+    call(make(client))
+    config = client.models.calls[0]["config"]
+    assert not {"temperature", "top_p", "top_k"} & set(config)
+
+
 def test_empty_response_becomes_empty_text():
     assert call(make(FakeClient(result=SimpleNamespace(text=None)))) == ""
 

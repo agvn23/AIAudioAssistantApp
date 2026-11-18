@@ -14,8 +14,6 @@ from .errors import FeedbackError
 
 logger = logging.getLogger(__name__)
 
-TEMPERATURE = 0.2
-
 
 class FeedbackGenerator(Protocol):
     """A generator may also expose `last_model_version: str | None`, the model name the
@@ -109,12 +107,13 @@ class GeminiGenerator:
 
     def generate(self, *, system_prompt: str, user_message: str, json_schema: dict[str, Any]) -> str:
         self.last_model_version = None  # a failed call must not leave the previous answer's value
+        # No sampling parameters (temperature, top_p, top_k): Gemini 3.5 Flash-Lite and 3.6 Flash
+        # ignore them, and later model generations answer HTTP 400 when they are sent.
         config = {
             "system_instruction": system_prompt,
             "response_mime_type": "application/json",
             "response_json_schema": json_schema,
             "max_output_tokens": self._max_output_tokens,
-            "temperature": TEMPERATURE,
         }
         retry = 0
         while True:
