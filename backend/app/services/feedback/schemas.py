@@ -67,7 +67,14 @@ class FeedbackContext(BaseModel):
 
 
 class FeedbackMeta(BaseModel):
-    model: str
+    # "model_version" starts with "model_", which some Pydantic v2 versions treat as a
+    # protected namespace and warn about. This model has no other use for that namespace.
+    model_config = ConfigDict(protected_namespaces=())
+
+    model: str  # the model name the server asked for
+    # The model name the provider reported in its answer. It can differ from `model`.
+    # None when the provider did not report one, and missing in feedback stored before it existed.
+    model_version: str | None = None
     generated_at: datetime
     context_used: FeedbackContext
     feedback_schema_version: int = FEEDBACK_SCHEMA_VERSION

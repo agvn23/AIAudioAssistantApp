@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 MAX_ATTEMPTS = 2  # the first try plus one retry with the problems spelled out
 MAX_PROBLEMS_REPORTED = 5
+MAX_MODEL_VERSION_CHARS = 100
 
 _FENCE = re.compile(r"^\s*```(?:json)?\s*(.*?)\s*```\s*$", re.DOTALL)
 
@@ -56,6 +57,16 @@ def _retry_message(user_message: str, problems: list[str]) -> str:
         "Return a corrected answer that follows all the rules. Cite metrics only by the exact "
         "paths that appear in the analysis, with their exact values."
     )
+
+
+def _answering_model_version(generator: FeedbackGenerator) -> str | None:
+    """The model name the provider reported for the generator's most recent call, which is the
+    attempt whose answer was kept. None when the generator does not report one, or reports
+    something that is not usable text."""
+    value = getattr(generator, "last_model_version", None)
+    if not isinstance(value, str):
+        return None
+    return value.strip()[:MAX_MODEL_VERSION_CHARS] or None
 
 
 def generate_feedback(
@@ -100,6 +111,7 @@ def generate_feedback(
         **feedback.model_dump(),
         meta=FeedbackMeta(
             model=generator.model_name,
+            model_version=_answering_model_version(generator),
             generated_at=datetime.now(timezone.utc),
             context_used=FeedbackContext(**llm_input["context"]),
         ),

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import os
 from typing import Any
 
@@ -16,6 +17,7 @@ SAMPLE_RATE = 44100
 SHORT_FILE_SEC = 10
 TEMPO_KEY_MAX_SEC = 240
 LOW_CONFIDENCE = 0.3
+TRUE_PEAK_WARNING_DBTP = 0.0  # warn when the true peak is above this
 
 
 def _round(value: Any, digits: int = 2) -> Any:
@@ -31,6 +33,35 @@ def _round(value: Any, digits: int = 2) -> Any:
     if isinstance(value, float):
         return round(value, digits) + 0.0  # + 0.0 turns -0.0 into 0.0
     return value
+
+
+def true_peak_warning(true_peak: Any) -> dict[str, str] | None:
+    """A warning when the true peak is above 0 dBTP, otherwise None.
+
+    `possible_clipping` counts samples at or near full scale and cannot see inter-sample overs:
+    a file can have no clipped sample and still go above 0 dBTP once it is reconstructed or
+    converted to a lossy format. The value is compared after the same rounding the stored
+    metrics get (2 decimals), so a true peak that is stored as 0.0 never produces a warning.
+    A missing, non-numeric or non-finite value gives no warning.
+    """
+    if true_peak is None or isinstance(true_peak, bool):
+        return None
+    try:
+        value = float(true_peak)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(value):
+        return None
+    shown = round(value, 2)
+    if shown <= TRUE_PEAK_WARNING_DBTP:
+        return None
+    return {
+        "code": "true_peak_above_0dbtp",
+        "message": (
+            f"true peak is {shown:.2f} dBTP, above 0 dBTP; inter-sample peaks can cause "
+            "distortion when the file is converted to a lossy format"
+        ),
+    }
 
 
 def analyze_file(
@@ -74,6 +105,9 @@ def analyze_file(
     if loudness["clipped_samples"] > 0:
         warnings.append({"code": "possible_clipping", "message":
                          f"{loudness['clipped_samples']} samples at or near full scale"})
+    peak_warning = true_peak_warning(loudness.get("true_peak_dbtp"))
+    if peak_warning is not None:
+        warnings.append(peak_warning)
 
     result: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,

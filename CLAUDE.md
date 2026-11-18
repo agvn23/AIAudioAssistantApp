@@ -24,6 +24,7 @@ backend/
   app/             FastAPI app: routers/, services/, models, schemas, config, db,
                    error_handling, request_limits, rate_limit, security, deps
   alembic/         migrations (versions/)
+  scripts/         developer tools, not part of the app (compare_feedback.py)
   tests/
   alembic.ini, requirements.txt, requirements-dev.txt, pyproject.toml, .env.example
 frontend/          React + TypeScript (Vite); tests live next to the code
@@ -41,6 +42,8 @@ Real test samples for the frontend stay in `frontend/src/test/fixtures/private/`
 - Analyze one file: `python -m analysis.cli ../samples/<file>.wav` (optional `--genre`, `--platform`, `--stage`; `--skip-tempo-key` skips essentia)
 - API: `uvicorn app.main:app --reload` (interactive docs at http://127.0.0.1:8000/docs)
 - Tests: `pytest`
+- Live test against the real provider (opt-in, spends Gemini quota): `RUN_LIVE_TESTS=1 pytest tests/test_feedback_live.py -s -rs`
+- Compare feedback across models (spends Gemini quota): `python -u -m scripts.compare_feedback --cases ../samples/feedback_compare/cases.json --runs 3 --pause 8` (optional `--model`); cases and results live in `samples/feedback_compare/` (git-ignored). How the results were judged is in `docs/DECISIONS.md` (2026-11-16 and 2026-11-17 rows)
 - Lint/format: `ruff check . && ruff format .`
 - Requires `ffmpeg` on PATH.
 
@@ -86,9 +89,9 @@ Week 3 (frontend): slices 0 to 4 are done and merged into dev.
 - Slice 2 (tracks): `/tracks` list with URL-driven search, genre, tag and paging, tag chips, create/edit/delete dialogs, `/tracks/:id` detail page.
 - Slice 3 (upload and polling, PR #10): XHR upload with progress and validation, version list with polling, `/analyses/:id` version page (status, edit, delete), waveform from the local file in-session only.
 - Slice 4 (results): runtime parsers for metrics and feedback, metrics cards, hand-written SVG spectrum chart with a hidden table, feedback cards with generate and regenerate.
-Week 3 (frontend): slice 5 (polish) is built and pushed on `frontend/slice-5-polish`; the code work is done. It adds the theme switch (system, light, dark), a repainting waveform with a keyboard position slider, "choose the audio file again", a contrast review, shared helpers, the label limit, the feedback rate-limit countdown and stale-feedback hint for genre and platform, and the `npm audit` and `allowScripts` review. 79 test files, 821 tests passing; typecheck, lint, format:check and build are clean; `npm audit --omit=dev` reports 0 vulnerabilities. Manual checks passed: upload end to end, dialogs, a 100 MB waveform, the AIFF message, an OS theme switch, narrow rows and paging. VoiceOver is checked on the Tracks page only. The decisions are in `docs/DECISIONS.md`.
-What remains of slice 5: push the branch and open the pull request into dev. The documentation is done.
-Next after that: a small backend follow-up slice (check the feedback quality on `gemini-3.5-flash-lite`, store `model_version` with the feedback, warn about a true peak above 0 dBTP), then the open checks in `docs/DECISIONS.md` (VoiceOver on the remaining pages, the unexplained "clickable" report), spectrum and stereo against a meter, more tempo and key tracks, a recheck of `npm audit` before submission, and choosing a licence.
+Week 3 (frontend): slice 5 (polish) is merged into dev (PR #12). It adds the theme switch (system, light, dark), a repainting waveform with a keyboard position slider, "choose the audio file again", a contrast review, shared helpers, the label limit, the feedback rate-limit countdown and stale-feedback hint for genre and platform, and the `npm audit` and `allowScripts` review. 79 test files, 821 tests passing; typecheck, lint, format:check and build are clean; `npm audit --omit=dev` reports 0 vulnerabilities. Manual checks passed: upload end to end, dialogs, a 100 MB waveform, the AIFF message, an OS theme switch, narrow rows and paging. VoiceOver is checked on the Tracks page only. The decisions are in `docs/DECISIONS.md`.
+Backend slice 6 (follow-ups, branch `backend/slice-6-followups`, built in Claude chat) is done and waits for its pull request into dev: `meta.model_version` is stored with the feedback; a `true_peak_above_0dbtp` warning covers inter-sample overs; `scripts/compare_feedback.py` compares models and was used to keep `gemini-3.5-flash-lite` (the older flash timed out at 60 s in 2 of 5 calls); feedback prompt rules 6 to 8 were tightened and re-run; a provider 503 is retried up to twice (2 s, then 4 s); the ignored `temperature` is no longer sent. 450 backend tests pass, 1 skipped (the opt-in live test). Known weaknesses of the feedback: "nothing needs fixing" boilerplate, few dynamics findings, less specific than `gemini-3.5-flash`; about a quarter of provider calls failed with a 503 in the comparison runs. Numbers and reasons are in `docs/DECISIONS.md` (rows from 2026-11-15 to 2026-11-17).
+Next after that: open the pull request for slice 6; a lint baseline (about 30 old `ruff check` findings and format drift in the backend); then the open checks in `docs/DECISIONS.md` (VoiceOver on the remaining pages, the unexplained "clickable" report), spectrum and stereo against a meter, more tempo and key tracks, a recheck of `npm audit` and of the Gemini free-tier numbers before submission, deployment notes and README screenshots.
 
 ## Plan
 1. Analysis engine + metrics JSON (done)

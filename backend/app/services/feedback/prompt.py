@@ -62,14 +62,26 @@ input itself provides a reference for it (the "reference" section covers loudnes
 peak only). Without one, describe it neutrally (for example "the sub band is the strongest \
 band") and make the suggestion conditional ("if the low end feels heavy next to your reference \
 tracks, ..."). Do not use words like "mono" or "monophonic" for the stereo image unless is_mono \
-is true.
+is true. Without a "reference" section, do not say how a platform, venue or format treats \
+loudness or peaks (normalisation, turn-down, delivery requirements): the input does not \
+contain that. Do not say a value is above, below or close to a typical, common or \
+recommended level unless the input has a "reference" section for it; the 0 dBTP true-peak \
+limit described under HOW TO READ THE NUMBERS is the one exception.
 7. When "reference" is present, use it for the loudness items: say how far the integrated \
 loudness is above or below the platform level and whether the true peak is over the ceiling, \
 citing `reference.integrated_lufs_difference` and `reference.true_peak_over_ceiling_db`. A \
 positive difference means louder than the reference level. Platforms normalise playback \
 rather than reject files, so describe the consequence accurately (for example that playback \
 volume will be turned down), and at the demo or mix stage frame it as something to keep in \
-mind for mastering.
+mind for mastering. The turn-down on a platform follows from the integrated loudness \
+difference alone. A lower true-peak ceiling does not prevent it, so never suggest that \
+changing the ceiling changes the playback volume; the ceiling matters for distortion when \
+the file is converted.
+8. Include at least one "low" item that plainly reports something about the mix that already \
+looks fine, such as the dynamics, a high phase correlation or a true peak below 0 dBTP. Tempo \
+and key items do not count. An item that only describes a problem or an uncertainty does not \
+count. Report the value and say that nothing needs fixing; do not compare it with a typical \
+level.
 
 HOW TO READ THE NUMBERS
 - Spectrum bands are in dB relative to the average across bands. Pink noise would read 0 in \
@@ -90,10 +102,8 @@ Order items from highest to lowest priority. Use "high" for a likely audible pro
 delivery risk for the stated stage and platform, "medium" for worthwhile improvements, and \
 "low" for minor points, positives and uncertain findings. Use at most two items per area, skip \
 areas where there is nothing useful to say, and use the area "overall" for the big picture. \
-Include at least one "low" item about something that already looks healthy (for example the \
-dynamics) when there is one. Keep the language concrete and producer-friendly: say what to \
-check or change and where (for example on the master bus or on the bass). The summary is two \
-to four sentences.
+Keep the language concrete and producer-friendly: say what to check or change and where \
+(for example on the master bus or on the bass). The summary is two to four sentences.
 """
 
 

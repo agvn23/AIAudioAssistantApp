@@ -39,7 +39,9 @@ def test_real_provider_returns_valid_verified_feedback():
     assert stored.meta.model == settings.gemini_model
     assert stored.items  # the service already verified every cited number
 
-    print("\n" + stored.summary)
+    # Not asserted: whether the provider reports a model_version is up to the provider.
+    print(f"\nasked for: {stored.meta.model}   answered by: {stored.meta.model_version}")
+    print(stored.summary)
     for item in stored.items:
         print(f"[{item.priority}] {item.area}: {item.observation}\n    -> {item.suggestion}")
     for caveat in stored.caveats:

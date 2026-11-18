@@ -5,6 +5,8 @@ so they work the same for every provider."""
 from __future__ import annotations
 
 import logging
+import time
+from collections.abc import Callable
 from typing import Any, Protocol
 
 from ...config import Settings
@@ -12,10 +14,12 @@ from .errors import FeedbackError
 
 logger = logging.getLogger(__name__)
 
-TEMPERATURE = 0.2
-
 
 class FeedbackGenerator(Protocol):
+    """A generator may also expose `last_model_version: str | None`, the model name the
+    provider reported for the most recent call (None when unknown or when that call failed).
+    It is optional: service.py reads it with getattr, so a generator without it still works."""
+
     model_name: str
 
     def generate(self, *, system_prompt: str, user_message: str, json_schema: dict[str, Any]) -> str:
@@ -37,6 +41,12 @@ def _is_timeout(exc: BaseException | None) -> bool:
     return False
 
 
+def _is_unavailable(exc: BaseException) -> bool:
+    """True for the provider answering 503 (overloaded). Only this is worth retrying: a timeout
+    already took the whole time limit, and a 429 means the quota or rate limit is used up."""
+    return getattr(exc, "code", None) == 503
+
+
 def _translate(exc: Exception) -> FeedbackError:
     """Turn any SDK or network error into a FeedbackError. Only the exception type and status
     code are logged, never the message: it could contain request details."""
@@ -52,6 +62,15 @@ def _translate(exc: Exception) -> FeedbackError:
     return FeedbackError("provider_error", "The AI provider returned an error. Try again later.")
 
 
+def _reported_model_version(response: Any) -> str | None:
+    """The `model_version` of a Gemini response as clean text, or None when it is missing or
+    not a non-empty string."""
+    value = getattr(response, "model_version", None)
+    if not isinstance(value, str):
+        return None
+    return value.strip() or None
+
+
 class GeminiGenerator:
     """Google Gemini through the `google-genai` SDK, with JSON-schema constrained output."""
 
@@ -63,8 +82,18 @@ class GeminiGenerator:
         timeout_seconds: float,
         max_output_tokens: int,
         client: Any | None = None,
+        retries: int = 0,
+        retry_delay_seconds: float = 0.0,
+        sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         self.model_name = model
+        # How often a 503 is retried and how long the first wait is; each wait doubles.
+        self.retries = retries
+        self.retry_delay_seconds = retry_delay_seconds
+        self._sleep = sleep
+        # What Gemini says answered the most recent call. It can differ from `model_name`
+        # (on 2026-11-15 a request for gemini-3.5-flash was answered by gemini-3.6-flash).
+        self.last_model_version: str | None = None
         self._max_output_tokens = max_output_tokens
         if client is None:
             from google import genai
@@ -77,19 +106,36 @@ class GeminiGenerator:
         self._client = client
 
     def generate(self, *, system_prompt: str, user_message: str, json_schema: dict[str, Any]) -> str:
+        self.last_model_version = None  # a failed call must not leave the previous answer's value
+        # No sampling parameters (temperature, top_p, top_k): Gemini 3.5 Flash-Lite and 3.6 Flash
+        # ignore them, and later model generations answer HTTP 400 when they are sent.
         config = {
             "system_instruction": system_prompt,
             "response_mime_type": "application/json",
             "response_json_schema": json_schema,
             "max_output_tokens": self._max_output_tokens,
-            "temperature": TEMPERATURE,
         }
-        try:
-            response = self._client.models.generate_content(
-                model=self.model_name, contents=user_message, config=config
-            )
-        except Exception as exc:
-            raise _translate(exc) from exc
+        retry = 0
+        while True:
+            try:
+                response = self._client.models.generate_content(
+                    model=self.model_name, contents=user_message, config=config
+                )
+                break
+            except Exception as exc:
+                if retry < self.retries and _is_unavailable(exc):
+                    delay = self.retry_delay_seconds * 2**retry
+                    retry += 1
+                    logger.warning(
+                        "feedback provider unavailable (code=503); retry %d of %d in %.1f s",
+                        retry,
+                        self.retries,
+                        delay,
+                    )
+                    self._sleep(delay)
+                    continue
+                raise _translate(exc) from exc
+        self.last_model_version = _reported_model_version(response)
         return getattr(response, "text", None) or ""
 
 
@@ -110,4 +156,6 @@ def build_generator(settings: Settings) -> FeedbackGenerator:
         model=model,
         timeout_seconds=settings.feedback_timeout_seconds,
         max_output_tokens=settings.feedback_max_tokens,
+        retries=settings.feedback_provider_retries,
+        retry_delay_seconds=settings.feedback_provider_retry_delay_seconds,
     )

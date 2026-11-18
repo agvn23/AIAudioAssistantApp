@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import SecretStr, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Only for local development. Any other environment must set JWT_SECRET.
@@ -92,6 +92,11 @@ class Settings(BaseSettings):
     feedback_timeout_seconds: float = 60.0
     # Generous on purpose: on some models the internal "thinking" counts against this limit.
     feedback_max_tokens: int = 8192
+    # A 503 from the provider (overloaded) is retried up to this many times. The wait before the
+    # first retry is the delay below, then it doubles (2 s, 4 s with the defaults). Timeouts, 429
+    # and every other error are never retried.
+    feedback_provider_retries: int = Field(default=2, ge=0, le=5)
+    feedback_provider_retry_delay_seconds: float = Field(default=2.0, ge=0.0, le=30.0)
 
     @property
     def cors_origin_list(self) -> list[str]:
