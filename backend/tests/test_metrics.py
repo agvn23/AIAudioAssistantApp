@@ -3,9 +3,9 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from conftest import needs_ffmpeg
 
 from analysis.metrics import analyze_file, true_peak_warning
-from conftest import needs_ffmpeg
 
 jsonschema = pytest.importorskip("jsonschema")
 

@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
+from conftest import make_sine, needs_ffmpeg
 
 from analysis.decode import decode_mono_float32
 from analysis.errors import AnalysisError
-from conftest import make_sine, needs_ffmpeg
 
 
 @needs_ffmpeg

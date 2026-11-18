@@ -6,8 +6,9 @@ import pytest
 
 pytest.importorskip("fastapi")
 
-from analysis.errors import AnalysisError  # adjust if AnalysisError lives elsewhere
 from conftest import make_sine, needs_ffmpeg
+
+from analysis.errors import AnalysisError  # adjust if AnalysisError lives elsewhere
 
 PASSWORD = "correct horse battery"
 RUNNER = "app.services.analysis_runner.analyze_file"

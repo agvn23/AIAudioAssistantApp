@@ -1,8 +1,8 @@
 import pytest
+from conftest import make_sine, needs_ffmpeg
 
 from analysis.errors import AnalysisError
 from analysis.loudness import analyze_loudness, parse_ebur128_output
-from conftest import make_sine, needs_ffmpeg
 
 SAMPLE_OUTPUT = """
 [Parsed_ebur128_0 @ 0x1] t: 0.1      TARGET:-23 LUFS    M:-120.7 S:-120.7     I: -70.0 LUFS       LRA:   0.0 LU
