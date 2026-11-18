@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated, Any
 
 from pydantic import (
@@ -25,8 +25,8 @@ def _as_utc(value: datetime) -> datetime:
     """SQLite returns naive datetimes. Everything we store is UTC, so say so explicitly;
     that way a response looks the same right after a write and when read back later."""
     if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc)
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 UtcDateTime = Annotated[datetime, AfterValidator(_as_utc)]

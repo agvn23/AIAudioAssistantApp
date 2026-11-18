@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import ValidationError
@@ -112,7 +112,7 @@ def generate_feedback(
         meta=FeedbackMeta(
             model=generator.model_name,
             model_version=_answering_model_version(generator),
-            generated_at=datetime.now(timezone.utc),
+            generated_at=datetime.now(UTC),
             context_used=FeedbackContext(**llm_input["context"]),
         ),
     )

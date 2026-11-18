@@ -1,7 +1,7 @@
 """JWT helpers with no dependency on app settings, so they are easy to test."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 
@@ -12,7 +12,7 @@ def create_access_token(
     algorithm: str = "HS256",
     expires_delta: timedelta = timedelta(minutes=30),
 ) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {"sub": str(user_id), "iat": now, "exp": now + expires_delta}
     return jwt.encode(payload, secret, algorithm=algorithm)
 

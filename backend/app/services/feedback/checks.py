@@ -22,8 +22,7 @@ def resolve_metric(measurements: dict[str, Any], path: str) -> float | None:
     """Follow a dotted path into `measurements`. Returns the number, or None when the path
     does not exist or does not end on a number (booleans do not count)."""
     path = path.strip()
-    if path.startswith("measurements."):
-        path = path[len("measurements.") :]
+    path = path.removeprefix("measurements.")
     node: Any = measurements
     for part in path.split("."):
         if isinstance(node, dict) and part in node:
