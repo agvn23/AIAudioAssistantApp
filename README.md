@@ -94,22 +94,24 @@ The differences are at most 0.6 dB and change sign from track to track. SPAN rea
 Not verified yet, and flagged as such:
 
 - Spectrum bands, stereo width and correlation have not been compared against a meter. Checks on synthetic signals pass (pink noise reads flat across the bands, white noise slopes up about 3 dB per octave, identical, inverted and unrelated channels give the expected correlation and width), but they test the definitions, not a meter. How to do the meter checks is in [`docs/DECISIONS.md`](docs/DECISIONS.md).
-- Inter-sample overs: `possible_clipping` counts samples at or near full scale and does not see them, so a separate `true_peak_above_0dbtp` warning fires when the true peak is above 0 dBTP. Analyses made before 2026-11-16 do not have that warning.
 - Dynamic range is an approximation with its own definition, so it is not comparable with DR14 meters.
 - Tempo and key were checked on two tracks (123.7 against a true 124 BPM with the key correct, and 128 BPM correct at confidence 0.54). The reliability thresholds that clamp low-confidence feedback are placeholders calibrated on that small sample.
 
-True peak was also compared with SPAN on two more tracks and agrees with its louder channel within 0.1 dB.
+True peak was also compared with SPAN on two more tracks and agrees with its louder channel within 0.1 dB. A `true_peak_above_0dbtp` warning fires when the true peak is above 0 dBTP, because `possible_clipping` counts samples at or near full scale and does not see inter-sample overs. Analyses made before 2026-11-16 do not have that warning.
 
 The reasoning behind each measurement choice is in [`docs/DECISIONS.md`](docs/DECISIONS.md).
 
 ## AI feedback
 
 - Provider: Gemini free tier, behind a `FeedbackGenerator` interface in `backend/app/services/feedback/`. Another provider is one extra class. This is a portfolio project, so it deliberately needs no paid key.
-- Output is structured JSON (`summary` plus items with area, severity, observation and suggestion), validated with Pydantic.
+- Output is structured JSON (`summary`, items with area, priority, observation, suggestion and evidence, and caveats), validated with Pydantic. Every number an item cites is checked against the measurements, and the call is retried once if the check fails.
 - Platform loudness differences (Spotify -14 LUFS, Apple Music -16, YouTube -14, EBU R128 broadcast -23, true-peak ceiling -1 dBTP) are computed in code and cited like measurements. The reference table lives in `references.py` in the feedback service.
 - At the demo and mix stages, loudness items are capped at medium priority in code, not only in the prompt, because loudness is a mastering concern.
 - A failed feedback call never changes the analysis or its previous feedback.
-- The free tier is small and Google changes it without notice. On 2026-11-15 AI Studio showed 15 requests per minute and 500 per day for `gemini-3.5-flash-lite`, and 5 per minute and 20 per day for `gemini-3.6-flash`. A failed citation check makes a second request, so one feedback call can use two. `RATE_LIMIT_FEEDBACK_GLOBAL` (200/day) is set to stay under the larger allowance; with a 20/day model, lower it to 10/day.
+- Each feedback stores the model the server asked for (`meta.model`) and the model that answered (`meta.model_version`), because Google can answer a request for one model with another.
+- A provider 503 (overloaded) is retried up to twice, after 2 s and then 4 s. In the comparison runs about one call in five hit a 503.
+- Model choice: `gemini-3.5-flash-lite` was compared with `gemini-3.5-flash` on five cases with `backend/scripts/compare_feedback.py`. Flash-lite answers in a few seconds; the older flash took 39 to 55 seconds and timed out in 2 of 5 calls. Flash-lite's advice is less specific (it says to check the panning where flash names the elements to pan) and it often adds a "nothing needs fixing" line. The prompt was tightened after the comparison and re-run. The numbers and the rules for judging them are in [`docs/DECISIONS.md`](docs/DECISIONS.md).
+- The free tier is small and Google changes it without notice. On 2026-11-15 AI Studio showed 15 requests per minute and 500 per day for `gemini-3.5-flash-lite`, and 5 per minute and 20 per day for `gemini-3.6-flash`. A failed citation check makes a second request, so one feedback call can use two. A retried 503 adds a request each time. `RATE_LIMIT_FEEDBACK_GLOBAL` (200/day) is set to stay under the larger allowance; with a 20/day model, lower it to 10/day.
 - The version page tells you when the feedback is out of date, because the stage, genre or platform changed after it was written.
 
 ## Architecture
@@ -331,7 +333,8 @@ Nothing here has been deployed yet. These notes follow from how the code is buil
 ## Roadmap
 
 - Verify spectrum and stereo against a meter; calibrate tempo and key reliability on more tracks, including half-time ones.
-- Check the feedback quality on `gemini-3.5-flash-lite`, store the model that answered with each feedback, and warn about a true peak above 0 dBTP.
+- Revisit the feedback model and its weaknesses once there is real usage. `gemini-3.7-flash` is Google's latest Flash model, and its free-tier limits have not been checked.
+- A lint baseline for the backend (old `ruff` findings and formatting).
 - Genre reference curves for the spectrum.
 - Version comparison endpoint (`GET /tracks/{id}/compare`) and a view for it.
 - `GET /tags`, so the track list can offer a tag picker.
