@@ -201,9 +201,7 @@ def test_counting_generator_counts_calls_and_reports_the_version():
 def test_a_clean_run_is_ok_with_one_attempt():
     generator = VersionedGenerator(good_output(), versions=["fake-model-001"])
 
-    result = cf.run_case(
-        generator, case(), example_metrics(), 1, clock=iter([10.0, 12.5]).__next__
-    )
+    result = cf.run_case(generator, case(), example_metrics(), 1, clock=iter([10.0, 12.5]).__next__)
 
     assert result["status"] == "ok"
     assert result["attempts"] == 1

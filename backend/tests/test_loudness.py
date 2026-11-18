@@ -56,7 +56,10 @@ def test_six_db_louder_file_measures_about_six_lu_louder(tmp_path):
     quiet, loud = tmp_path / "quiet.wav", tmp_path / "loud.wav"
     make_sine(quiet, -6)
     make_sine(loud, 0)
-    diff = analyze_loudness(str(loud))["integrated_lufs"] - analyze_loudness(str(quiet))["integrated_lufs"]
+    diff = (
+        analyze_loudness(str(loud))["integrated_lufs"]
+        - analyze_loudness(str(quiet))["integrated_lufs"]
+    )
     assert diff == pytest.approx(6.02, abs=0.5)
 
 

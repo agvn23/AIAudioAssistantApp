@@ -33,7 +33,10 @@ def test_dynamic_range_grows_when_peaks_stand_out_above_the_loud_sections():
     peaky = steady.copy()
     peaky[1 * SR] = 0.95  # two brief peaks in different 3 s blocks
     peaky[15 * SR] = 0.95
-    assert analyze_dynamics(peaky)["dynamic_range_db"] > analyze_dynamics(steady)["dynamic_range_db"] + 3
+    assert (
+        analyze_dynamics(peaky)["dynamic_range_db"]
+        > analyze_dynamics(steady)["dynamic_range_db"] + 3
+    )
 
 
 def test_works_on_stereo_arrays():

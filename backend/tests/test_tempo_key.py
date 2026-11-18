@@ -1,4 +1,5 @@
 """Smoke tests for the essentia integration. Skipped unless essentia is installed."""
+
 import wave
 
 import numpy as np

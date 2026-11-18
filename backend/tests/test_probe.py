@@ -4,8 +4,7 @@ from types import SimpleNamespace
 from analysis import probe
 
 FFPROBE_ENTRIES = (
-    "stream=sample_rate,channels,bits_per_raw_sample,bits_per_sample"
-    ":format=duration,format_name"
+    "stream=sample_rate,channels,bits_per_raw_sample,bits_per_sample:format=duration,format_name"
 )
 
 

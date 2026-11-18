@@ -5,8 +5,15 @@ import math
 TONICS = ("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
 
 _ENHARMONIC_TO_SHARP = {
-    "Db": "C#", "Eb": "D#", "Gb": "F#", "Ab": "G#", "Bb": "A#",
-    "Cb": "B", "Fb": "E", "E#": "F", "B#": "C",
+    "Db": "C#",
+    "Eb": "D#",
+    "Gb": "F#",
+    "Ab": "G#",
+    "Bb": "A#",
+    "Cb": "B",
+    "Fb": "E",
+    "E#": "F",
+    "B#": "C",
 }
 
 # RhythmExtractor2013 ("multifeature") reports confidence on a 0 to about 5.32 scale.

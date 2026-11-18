@@ -161,9 +161,7 @@ def test_unexpected_errors_never_leak_details(client, alice, monkeypatch, upload
     assert leftovers(upload_dir) == []
 
 
-def test_deleting_the_analysis_while_it_runs_is_harmless(
-    client, alice, monkeypatch, upload_dir
-):
+def test_deleting_the_analysis_while_it_runs_is_harmless(client, alice, monkeypatch, upload_dir):
     from app.db import SessionLocal
     from app.models import Analysis
 

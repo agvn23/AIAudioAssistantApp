@@ -51,9 +51,9 @@ def no_feedback_provider(monkeypatch):
 
 def make_user(client, email):
     client.post("/auth/register", json={"email": email, "password": PASSWORD})
-    token = client.post(
-        "/auth/login", data={"username": email, "password": PASSWORD}
-    ).json()["access_token"]
+    token = client.post("/auth/login", data={"username": email, "password": PASSWORD}).json()[
+        "access_token"
+    ]
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -284,7 +284,9 @@ def test_the_server_refuses_new_uploads_when_it_is_busy(client, stub_analysis, m
     assert "retry-after" in busy.headers
 
 
-def test_a_refused_upload_leaves_no_temp_file_and_no_row(client, stub_analysis, monkeypatch, tmp_path):
+def test_a_refused_upload_leaves_no_temp_file_and_no_row(
+    client, stub_analysis, monkeypatch, tmp_path
+):
     monkeypatch.setattr(settings, "upload_tmp_dir", str(tmp_path))
     monkeypatch.setattr(settings, "max_analyses_per_track", 0)
     headers = make_user(client, "a@example.com")

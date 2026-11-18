@@ -24,7 +24,11 @@ class FakeGenerator:
 
     def generate(self, *, system_prompt, user_message, json_schema):
         self.calls.append(
-            {"system_prompt": system_prompt, "user_message": user_message, "json_schema": json_schema}
+            {
+                "system_prompt": system_prompt,
+                "user_message": user_message,
+                "json_schema": json_schema,
+            }
         )
         result = self.outputs.pop(0)
         if isinstance(result, Exception):

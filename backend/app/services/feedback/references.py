@@ -55,7 +55,9 @@ def _is_number(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
-def reference_for(target_platform: str | None, loudness: dict[str, Any] | None) -> dict[str, Any] | None:
+def reference_for(
+    target_platform: str | None, loudness: dict[str, Any] | None
+) -> dict[str, Any] | None:
     """The reference section for the LLM input, or None when the platform has no loudness
     target (club, other, unknown). A positive difference means louder / higher than the
     reference."""

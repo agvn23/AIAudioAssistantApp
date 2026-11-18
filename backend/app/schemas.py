@@ -20,7 +20,6 @@ MAX_TAGS_PER_TRACK = 10
 MAX_TAG_LENGTH = 30
 
 
-
 def _as_utc(value: datetime) -> datetime:
     """SQLite returns naive datetimes. Everything we store is UTC, so say so explicitly;
     that way a response looks the same right after a write and when read back later."""

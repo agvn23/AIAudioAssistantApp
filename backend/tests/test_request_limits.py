@@ -159,9 +159,7 @@ def analysis_count() -> int:
 def test_an_oversized_json_body_gets_413_and_normal_ones_still_work(client, monkeypatch):
     monkeypatch.setattr(settings, "max_request_body_kb", 1)
 
-    too_big = client.post(
-        "/auth/register", json={"email": "a@example.com", "password": "x" * 3000}
-    )
+    too_big = client.post("/auth/register", json={"email": "a@example.com", "password": "x" * 3000})
     assert too_big.status_code == 413
     assert too_big.json()["error"]["code"] == "payload_too_large"
 

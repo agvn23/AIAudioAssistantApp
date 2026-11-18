@@ -32,8 +32,19 @@ def analyze_loudness(
     path: str, ffmpeg_path: str = "ffmpeg", timeout: float = 120
 ) -> LoudnessMetrics:
     """Measure EBU R128 loudness with ffmpeg's ebur128 filter (ITU-R BS.1770 based)."""
-    args = [ffmpeg_path, "-hide_banner", "-nostats", "-i", path, "-vn",
-            "-af", "ebur128=peak=true:framelog=info", "-f", "null", "-"]
+    args = [
+        ffmpeg_path,
+        "-hide_banner",
+        "-nostats",
+        "-i",
+        path,
+        "-vn",
+        "-af",
+        "ebur128=peak=true:framelog=info",
+        "-f",
+        "null",
+        "-",
+    ]
     try:
         proc = subprocess.run(args, capture_output=True, timeout=timeout, check=False)
     except FileNotFoundError as exc:

@@ -1,4 +1,5 @@
 """JWT helpers with no dependency on app settings, so they are easy to test."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta

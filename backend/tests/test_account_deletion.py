@@ -66,7 +66,10 @@ def test_delete_requires_the_password_in_the_body(client):
     headers = make_user(client, "a@example.com")
     assert client.request("DELETE", "/users/me", headers=headers).status_code == 422
     assert client.request("DELETE", "/users/me", json={}, headers=headers).status_code == 422
-    assert client.request("DELETE", "/users/me", json={"password": ""}, headers=headers).status_code == 422
+    assert (
+        client.request("DELETE", "/users/me", json={"password": ""}, headers=headers).status_code
+        == 422
+    )
     assert count(User) == 1
 
 
@@ -109,13 +112,21 @@ def test_deleting_an_account_removes_everything_it_owns_and_nothing_else(client)
 
     # Before: 2 users, 3 tracks, tags club+demo (A) and club (B), 4 links, 3 analyses.
     assert (count(User), count(Track), count(Tag), count(track_tags), count(Analysis)) == (
-        2, 3, 3, 4, 3,
+        2,
+        3,
+        3,
+        4,
+        3,
     )
 
     assert delete_account(client, a).status_code == 204
 
     assert (count(User), count(Track), count(Tag), count(track_tags), count(Analysis)) == (
-        1, 1, 1, 1, 1,
+        1,
+        1,
+        1,
+        1,
+        1,
     )
     listing = client.get("/tracks", headers=b).json()
     assert listing["total"] == 1

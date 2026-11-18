@@ -32,6 +32,7 @@ def make_engine(url: str) -> Engine:
     engine = create_engine(url, **kwargs)
 
     if is_sqlite:
+
         @event.listens_for(engine, "connect")
         def _enable_foreign_keys(dbapi_connection, _record):  # SQLite ignores FKs unless asked
             cursor = dbapi_connection.cursor()

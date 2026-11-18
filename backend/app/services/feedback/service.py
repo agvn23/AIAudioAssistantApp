@@ -80,9 +80,7 @@ def generate_feedback(
     """Returns the dict to store in analyses.feedback (a StoredFeedback as plain JSON).
     Raises FeedbackError: provider errors pass through unchanged, and an answer that is still
     invalid after the retry becomes 'invalid_output'."""
-    llm_input = build_llm_input(
-        metrics, genre=genre, target_platform=target_platform, stage=stage
-    )
+    llm_input = build_llm_input(metrics, genre=genre, target_platform=target_platform, stage=stage)
     measurements = llm_input["measurements"]
     citable = evidence_space(llm_input)
     first_message = build_user_message(llm_input)

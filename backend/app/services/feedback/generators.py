@@ -22,7 +22,9 @@ class FeedbackGenerator(Protocol):
 
     model_name: str
 
-    def generate(self, *, system_prompt: str, user_message: str, json_schema: dict[str, Any]) -> str:
+    def generate(
+        self, *, system_prompt: str, user_message: str, json_schema: dict[str, Any]
+    ) -> str:
         """Return the model's raw text answer. Raise FeedbackError for provider problems."""
         ...
 
@@ -105,7 +107,9 @@ class GeminiGenerator:
             )
         self._client = client
 
-    def generate(self, *, system_prompt: str, user_message: str, json_schema: dict[str, Any]) -> str:
+    def generate(
+        self, *, system_prompt: str, user_message: str, json_schema: dict[str, Any]
+    ) -> str:
         self.last_model_version = None  # a failed call must not leave the previous answer's value
         # No sampling parameters (temperature, top_p, top_k): Gemini 3.5 Flash-Lite and 3.6 Flash
         # ignore them, and later model generations answer HTTP 400 when they are sent.
@@ -141,7 +145,9 @@ class GeminiGenerator:
 
 def build_generator(settings: Settings) -> FeedbackGenerator:
     """The generator for the configured provider, or FeedbackError('not_configured')."""
-    not_configured = FeedbackError("not_configured", "AI feedback is not configured on this server.")
+    not_configured = FeedbackError(
+        "not_configured", "AI feedback is not configured on this server."
+    )
 
     if settings.feedback_provider.strip().lower() != "gemini":
         raise not_configured
