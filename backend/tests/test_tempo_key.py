@@ -1,4 +1,5 @@
 """Smoke tests for the essentia integration. Skipped unless essentia is installed."""
+
 import wave
 
 import numpy as np
@@ -6,7 +7,7 @@ import pytest
 
 pytest.importorskip("essentia")
 
-from analysis.tempo_key import analyze_tempo_and_key  # noqa: E402
+from analysis.tempo_key import analyze_tempo_and_key
 
 
 def _write_click_track(path, bpm=120, seconds=20, sr=44100):

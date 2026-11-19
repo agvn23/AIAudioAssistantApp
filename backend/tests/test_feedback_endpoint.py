@@ -86,7 +86,7 @@ def use_generator(client):
     from app.main import app
 
     def install(generator):
-        app.dependency_overrides[get_feedback_generator_factory] = lambda: (lambda: generator)
+        app.dependency_overrides[get_feedback_generator_factory] = lambda: lambda: generator
 
     yield install
     app.dependency_overrides.pop(get_feedback_generator_factory, None)

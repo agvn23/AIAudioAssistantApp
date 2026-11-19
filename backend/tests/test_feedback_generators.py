@@ -32,7 +32,9 @@ def make(client):
 
 
 def call(generator):
-    return generator.generate(system_prompt="SYS", user_message="USER", json_schema={"type": "object"})
+    return generator.generate(
+        system_prompt="SYS", user_message="USER", json_schema={"type": "object"}
+    )
 
 
 # --- GeminiGenerator -----------------------------------------------------------------------

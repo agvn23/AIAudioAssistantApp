@@ -19,9 +19,12 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(password: str, password_hash: str) -> bool:
+    # The broad except is deliberate (so BLE001 is switched off on that line): whatever goes
+    # wrong while reading a stored hash (a corrupt value, an unknown hash format) has to mean
+    # "not verified". It must never become an error that could pass for a successful login.
     try:
         return _password_hash.verify(password, password_hash)
-    except Exception:  # an unreadable stored hash must fail closed
+    except Exception:  # noqa: BLE001
         return False
 
 

@@ -89,7 +89,7 @@ def test_a_declared_content_length_over_the_limit_is_rejected_before_the_route_r
 
 
 def test_a_chunked_body_is_cut_off_once_it_goes_over_the_limit():
-    app, calls = make_app(lambda method, path: 10)
+    app, _ = make_app(lambda method, path: 10)
     status, body = call_asgi(app, chunks=[b"123456", b"78901"])  # 11 bytes, no Content-Length
     assert status == 413
     assert body == {"error": {"code": "payload_too_large", "message": "Request body is too large"}}
@@ -159,9 +159,7 @@ def analysis_count() -> int:
 def test_an_oversized_json_body_gets_413_and_normal_ones_still_work(client, monkeypatch):
     monkeypatch.setattr(settings, "max_request_body_kb", 1)
 
-    too_big = client.post(
-        "/auth/register", json={"email": "a@example.com", "password": "x" * 3000}
-    )
+    too_big = client.post("/auth/register", json={"email": "a@example.com", "password": "x" * 3000})
     assert too_big.status_code == 413
     assert too_big.json()["error"]["code"] == "payload_too_large"
 

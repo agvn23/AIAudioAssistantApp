@@ -241,9 +241,10 @@ def test_patch_with_an_empty_body_changes_nothing(client, alice):
 def test_patch_replaces_the_tag_set(client, alice):
     track = create_track(client, alice, tags=["wip", "club"])
     url = f"/tracks/{track['id']}"
-    assert client.patch(url, headers=alice, json={"tags": ["Mastered", "club"]}).json()[
-        "tags"
-    ] == ["club", "mastered"]
+    assert client.patch(url, headers=alice, json={"tags": ["Mastered", "club"]}).json()["tags"] == [
+        "club",
+        "mastered",
+    ]
     assert client.patch(url, headers=alice, json={"tags": []}).json()["tags"] == []
     assert client.get(url, headers=alice).json()["tags"] == []
 
@@ -260,9 +261,7 @@ def test_patch_moves_updated_at_forward(client, alice):
 def test_patch_cannot_change_the_owner_or_id(client, alice, bob):
     track = create_track(client, alice)
     me_bob = client.get("/users/me", headers=bob).json()
-    client.patch(
-        f"/tracks/{track['id']}", headers=alice, json={"user_id": me_bob["id"], "id": 999}
-    )
+    client.patch(f"/tracks/{track['id']}", headers=alice, json={"user_id": me_bob["id"], "id": 999})
     assert client.get(f"/tracks/{track['id']}", headers=alice).status_code == 200
     assert client.get(f"/tracks/{track['id']}", headers=bob).status_code == 404
 

@@ -22,9 +22,9 @@ class LoudnessMetrics(_LoudnessRequired, total=False):
 
 
 _NUM = r"(-?\d+(?:\.\d+)?|-inf|nan)"
-_INTEGRATED = re.compile(rf"^\s*I:\s+{_NUM}\s+LUFS", re.M)
-_LRA = re.compile(rf"^\s*LRA:\s+{_NUM}\s+LU", re.M)
-_PEAK = re.compile(rf"^\s*Peak:\s+{_NUM}\s+dBFS", re.M)
+_INTEGRATED = re.compile(rf"^\s*I:\s+{_NUM}\s+LUFS", re.MULTILINE)
+_LRA = re.compile(rf"^\s*LRA:\s+{_NUM}\s+LU", re.MULTILINE)
+_PEAK = re.compile(rf"^\s*Peak:\s+{_NUM}\s+dBFS", re.MULTILINE)
 _FRAME = re.compile(rf"\bM:\s*{_NUM}\s+S:\s*{_NUM}")
 
 
@@ -32,8 +32,19 @@ def analyze_loudness(
     path: str, ffmpeg_path: str = "ffmpeg", timeout: float = 120
 ) -> LoudnessMetrics:
     """Measure EBU R128 loudness with ffmpeg's ebur128 filter (ITU-R BS.1770 based)."""
-    args = [ffmpeg_path, "-hide_banner", "-nostats", "-i", path, "-vn",
-            "-af", "ebur128=peak=true:framelog=info", "-f", "null", "-"]
+    args = [
+        ffmpeg_path,
+        "-hide_banner",
+        "-nostats",
+        "-i",
+        path,
+        "-vn",
+        "-af",
+        "ebur128=peak=true:framelog=info",
+        "-f",
+        "null",
+        "-",
+    ]
     try:
         proc = subprocess.run(args, capture_output=True, timeout=timeout, check=False)
     except FileNotFoundError as exc:

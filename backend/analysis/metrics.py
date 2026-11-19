@@ -94,17 +94,33 @@ def analyze_file(
     source_channels = info["channels"] or 2
     warnings: list[dict[str, str]] = []
     if source_channels > 2:
-        warnings.append({"code": "downmixed", "message":
-                         f"source has {source_channels} channels; stereo measurements use a 2-channel downmix"})
+        warnings.append(
+            {
+                "code": "downmixed",
+                "message": f"source has {source_channels} channels; stereo measurements use a 2-channel downmix",
+            }
+        )
     if duration < SHORT_FILE_SEC:
-        warnings.append({"code": "short_file", "message":
-                         f"file is {duration:.1f} s long; tempo, key and loudness range are less reliable"})
+        warnings.append(
+            {
+                "code": "short_file",
+                "message": f"file is {duration:.1f} s long; tempo, key and loudness range are less reliable",
+            }
+        )
     if duration > max_seconds:
-        warnings.append({"code": "analysis_truncated", "message":
-                         f"spectrum, stereo and dynamics use the first {int(max_seconds)} s only"})
+        warnings.append(
+            {
+                "code": "analysis_truncated",
+                "message": f"spectrum, stereo and dynamics use the first {int(max_seconds)} s only",
+            }
+        )
     if loudness["clipped_samples"] > 0:
-        warnings.append({"code": "possible_clipping", "message":
-                         f"{loudness['clipped_samples']} samples at or near full scale"})
+        warnings.append(
+            {
+                "code": "possible_clipping",
+                "message": f"{loudness['clipped_samples']} samples at or near full scale",
+            }
+        )
     peak_warning = true_peak_warning(loudness.get("true_peak_dbtp"))
     if peak_warning is not None:
         warnings.append(peak_warning)
@@ -113,8 +129,9 @@ def analyze_file(
         "schema_version": SCHEMA_VERSION,
         "file": {
             "name": os.path.basename(path),
-            "format": os.path.splitext(path)[1].lstrip(".").lower()
-                      or info["format_name"].split(",")[0],
+            "format": (
+                os.path.splitext(path)[1].lstrip(".").lower() or info["format_name"].split(",")[0]
+            ),
             "duration_sec": duration,
             "sample_rate_hz": info["sample_rate_hz"] or SAMPLE_RATE,
             "bit_depth": info["bit_depth"],
@@ -134,14 +151,26 @@ def analyze_file(
         )
         result["tempo"], result["key"] = tk["tempo"], tk["key"]
         if duration > TEMPO_KEY_MAX_SEC:
-            warnings.append({"code": "tempo_key_truncated", "message":
-                             f"tempo and key use the first {TEMPO_KEY_MAX_SEC} s only"})
+            warnings.append(
+                {
+                    "code": "tempo_key_truncated",
+                    "message": f"tempo and key use the first {TEMPO_KEY_MAX_SEC} s only",
+                }
+            )
         if tk["tempo"]["confidence"] < LOW_CONFIDENCE:
-            warnings.append({"code": "low_tempo_confidence", "message":
-                             "tempo estimate has low confidence; treat BPM as a suggestion"})
+            warnings.append(
+                {
+                    "code": "low_tempo_confidence",
+                    "message": "tempo estimate has low confidence; treat BPM as a suggestion",
+                }
+            )
         if tk["key"]["confidence"] < LOW_CONFIDENCE:
-            warnings.append({"code": "low_key_confidence", "message":
-                             "key estimate has low confidence; treat it as a suggestion"})
+            warnings.append(
+                {
+                    "code": "low_key_confidence",
+                    "message": "key estimate has low confidence; treat it as a suggestion",
+                }
+            )
 
     if warnings:
         result["warnings"] = warnings

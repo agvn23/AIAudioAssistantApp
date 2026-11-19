@@ -73,9 +73,7 @@ def run_analysis(
 
             # The engine saw a random temp name; show the user's own file name instead.
             metrics.setdefault("file", {})["name"] = original_filename
-            _update(
-                analysis_id, status=AnalysisStatus.DONE.value, metrics=metrics, error_code=None
-            )
+            _update(analysis_id, status=AnalysisStatus.DONE.value, metrics=metrics, error_code=None)
     finally:
         remove_quietly(temp_path)
 
@@ -88,7 +86,9 @@ def mark_interrupted() -> int:
     with SessionLocal() as db:
         result = db.execute(
             update(Analysis)
-            .where(Analysis.status.in_([AnalysisStatus.PENDING.value, AnalysisStatus.RUNNING.value]))
+            .where(
+                Analysis.status.in_([AnalysisStatus.PENDING.value, AnalysisStatus.RUNNING.value])
+            )
             .values(status=AnalysisStatus.FAILED.value, error_code="interrupted")
         )
         db.commit()

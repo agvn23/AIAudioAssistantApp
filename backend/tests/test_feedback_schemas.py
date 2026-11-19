@@ -121,7 +121,9 @@ def test_stored_feedback_dumps_to_plain_json():
         meta=FeedbackMeta(
             model="some-model",
             generated_at=datetime(2026, 10, 30, 12, 0, tzinfo=UTC),
-            context_used=FeedbackContext(genre="pop rock", target_platform="spotify", stage=Stage.DEMO),
+            context_used=FeedbackContext(
+                genre="pop rock", target_platform="spotify", stage=Stage.DEMO
+            ),
         ),
     )
     dumped = stored.model_dump(mode="json")

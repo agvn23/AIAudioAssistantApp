@@ -105,19 +105,19 @@ class Settings(BaseSettings):
         return [o.strip().rstrip("/") for o in self.cors_origins.split(",") if o.strip()]
 
     @model_validator(mode="after")
-    def _require_real_secret_outside_development(self) -> "Settings":
+    def _require_real_secret_outside_development(self) -> Settings:
         if self.environment != "development" and self.jwt_secret == DEV_JWT_SECRET:
             raise ValueError("JWT_SECRET must be set when ENVIRONMENT is not 'development'")
         return self
 
     @model_validator(mode="after")
-    def _cors_origins_are_explicit(self) -> "Settings":
+    def _cors_origins_are_explicit(self) -> Settings:
         if "*" in self.cors_origin_list:
             raise ValueError("CORS_ORIGINS must list explicit origins, not '*'")
         return self
 
     @model_validator(mode="after")
-    def _rates_are_valid(self) -> "Settings":
+    def _rates_are_valid(self) -> Settings:
         for name in _RATE_FIELDS:
             parse_rate(getattr(self, name))  # a typo fails at startup, not on the first request
         if self.rate_limit_feedback_global.strip():

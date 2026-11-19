@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, ClassVar
 
 from sqlalchemy import (
     JSON,
@@ -20,7 +20,7 @@ from .db import Base
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class User(Base):
@@ -29,7 +29,7 @@ class User(Base):
     # token issued to a deleted account authenticate as the next person to register.
     # AUTOINCREMENT makes SQLite never hand out an id twice (Postgres sequences already behave
     # this way). Tracks, tags and analyses are always ownership-checked, so they do not need it.
-    __table_args__ = {"sqlite_autoincrement": True}
+    __table_args__: ClassVar[dict[str, Any]] = {"sqlite_autoincrement": True}
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)

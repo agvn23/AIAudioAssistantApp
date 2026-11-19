@@ -10,10 +10,19 @@ from .errors import AnalysisError
 def probe_file(path: str, ffprobe_path: str = "ffprobe", timeout: float = 30) -> dict[str, Any]:
     """Read basic stream facts with ffprobe (ships with ffmpeg)."""
     args = [
-        ffprobe_path, "-v", "error", "-select_streams", "a:0",
-        "-show_entries", "stream=sample_rate,channels,bits_per_raw_sample,bits_per_sample"
-                         ":format=duration,format_name",
-        "-of", "json", path,
+        ffprobe_path,
+        "-v",
+        "error",
+        "-select_streams",
+        "a:0",
+        "-show_entries",
+        (
+            "stream=sample_rate,channels,bits_per_raw_sample,bits_per_sample"
+            ":format=duration,format_name"
+        ),
+        "-of",
+        "json",
+        path,
     ]
     try:
         proc = subprocess.run(args, capture_output=True, timeout=timeout, check=False)

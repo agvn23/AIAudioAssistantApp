@@ -125,7 +125,9 @@ def error_response(
 
 
 def _default_code(status_code: int) -> str:
-    return _CODE_FOR_STATUS.get(status_code, "client_error" if status_code < 500 else "server_error")
+    return _CODE_FOR_STATUS.get(
+        status_code, "client_error" if status_code < 500 else "server_error"
+    )
 
 
 def _phrase(status_code: int) -> str:

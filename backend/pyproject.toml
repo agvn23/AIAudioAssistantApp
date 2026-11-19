@@ -5,3 +5,8 @@ pythonpath = ["."]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[tool.ruff.lint.isort]
+# backend/alembic/ (our migrations folder) has the same name as the installed alembic package.
+# Without this line ruff sorts `import alembic` with our own code; it is third-party.
+known-third-party = ["alembic"]

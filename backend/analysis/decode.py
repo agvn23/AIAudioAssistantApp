@@ -21,8 +21,19 @@ def decode_float32(
     2 channels is duplicated to both. The path is passed as a list argument (never through
     a shell).
     """
-    args = [ffmpeg_path, "-hide_banner", "-loglevel", "error", "-i", path, "-vn",
-            "-ac", str(channels), "-ar", str(sample_rate)]
+    args = [
+        ffmpeg_path,
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-i",
+        path,
+        "-vn",
+        "-ac",
+        str(channels),
+        "-ar",
+        str(sample_rate),
+    ]
     if max_seconds is not None:
         args += ["-t", str(max_seconds)]
     args += ["-f", "f32le", "-"]

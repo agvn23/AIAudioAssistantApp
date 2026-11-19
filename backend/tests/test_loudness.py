@@ -1,8 +1,8 @@
 import pytest
+from conftest import make_sine, needs_ffmpeg
 
 from analysis.errors import AnalysisError
 from analysis.loudness import analyze_loudness, parse_ebur128_output
-from conftest import make_sine, needs_ffmpeg
 
 SAMPLE_OUTPUT = """
 [Parsed_ebur128_0 @ 0x1] t: 0.1      TARGET:-23 LUFS    M:-120.7 S:-120.7     I: -70.0 LUFS       LRA:   0.0 LU
@@ -56,7 +56,10 @@ def test_six_db_louder_file_measures_about_six_lu_louder(tmp_path):
     quiet, loud = tmp_path / "quiet.wav", tmp_path / "loud.wav"
     make_sine(quiet, -6)
     make_sine(loud, 0)
-    diff = analyze_loudness(str(loud))["integrated_lufs"] - analyze_loudness(str(quiet))["integrated_lufs"]
+    diff = (
+        analyze_loudness(str(loud))["integrated_lufs"]
+        - analyze_loudness(str(quiet))["integrated_lufs"]
+    )
     assert diff == pytest.approx(6.02, abs=0.5)
 
 

@@ -147,9 +147,7 @@ def _create_analysis(
     raise HTTPException(status_code=409, detail="Conflicting update, please retry")
 
 
-@router.post(
-    "/tracks/{track_id}/analyses", response_model=AnalysisRead, status_code=202
-)
+@router.post("/tracks/{track_id}/analyses", response_model=AnalysisRead, status_code=202)
 def upload_analysis(
     track_id: int,
     user: CurrentUser,
@@ -199,9 +197,7 @@ def list_analyses(track_id: int, user: CurrentUser, db: DbSession) -> list[Analy
     track = get_owned_track(db, user, track_id)
     return list(
         db.scalars(
-            select(Analysis)
-            .where(Analysis.track_id == track.id)
-            .order_by(Analysis.version_number)
+            select(Analysis).where(Analysis.track_id == track.id).order_by(Analysis.version_number)
         )
     )
 
@@ -245,13 +241,13 @@ def create_feedback(
             stage=analysis.stage,
         )
     except FeedbackError as exc:
-        raise ApiError(
-            STATUS_FOR_CODE.get(exc.code, 502), exc.message, code=exc.code
-        ) from exc
+        raise ApiError(STATUS_FOR_CODE.get(exc.code, 502), exc.message, code=exc.code) from exc
 
     # A plain UPDATE, like the background runner: it never fails on a row that has gone away
     # (the user may have deleted the version while the model was thinking).
-    result = db.execute(update(Analysis).where(Analysis.id == analysis_id).values(feedback=feedback))
+    result = db.execute(
+        update(Analysis).where(Analysis.id == analysis_id).values(feedback=feedback)
+    )
     db.commit()
     if result.rowcount == 0:
         raise HTTPException(status_code=404, detail="Analysis not found")

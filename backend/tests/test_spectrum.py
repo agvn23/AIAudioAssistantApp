@@ -3,6 +3,7 @@ import math
 import numpy as np
 import pytest
 
+from analysis import spectrum
 from analysis.spectrum import BANDS, analyze_spectrum
 
 SR = 44100
@@ -49,3 +50,10 @@ def test_centroid_of_a_sine_is_its_frequency():
 def test_accepts_stereo_arrays():
     stereo = np.stack([_pink(1), _pink(2)], axis=1).astype(np.float32)
     assert len(analyze_spectrum(stereo)["bands"]) == len(BANDS)
+
+
+def test_tilt_of_a_known_curve_is_unchanged():
+    """A fixed curve with no random numbers, so the exact slope stays the same over time."""
+    freqs = np.arange(0, 22050.0, 2.7)
+    psd = 1.0 / (1.0 + (freqs / 500.0) ** 2) + 1e-4
+    assert spectrum._tilt(freqs, psd) == pytest.approx(-3.5050083262258327, rel=1e-6)

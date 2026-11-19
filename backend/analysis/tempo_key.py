@@ -38,9 +38,9 @@ def analyze_tempo_and_key(
         path, sample_rate=SAMPLE_RATE, max_seconds=max_seconds, ffmpeg_path=ffmpeg_path
     )
 
-    bpm, _ticks, confidence, _estimates, _intervals = es.RhythmExtractor2013(
-        method="multifeature"
-    )(audio)
+    bpm, _ticks, confidence, _estimates, _intervals = es.RhythmExtractor2013(method="multifeature")(
+        audio
+    )
     bpm_value = round(float(bpm), 1) if bpm and float(bpm) > 0 else None
     tempo: dict[str, Any] = {
         "bpm": bpm_value,

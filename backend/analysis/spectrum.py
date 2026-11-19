@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from itertools import pairwise
 
 import numpy as np
 from scipy.signal import welch
@@ -21,9 +22,7 @@ def _db10(x: float) -> float:
     return 10.0 * math.log10(x) if x > 0 else _FLOOR_DB
 
 
-def analyze_spectrum(
-    audio: np.ndarray, sample_rate: int = 44100, nperseg: int = 8192
-) -> dict:
+def analyze_spectrum(audio: np.ndarray, sample_rate: int = 44100, nperseg: int = 8192) -> dict:
     """Average spectrum summary of the mono mix.
 
     Band values are energy per octave, in dB, relative to the average across the bands.
@@ -50,7 +49,9 @@ def analyze_spectrum(
 
     total = float(psd.sum())
     in_range = (freqs >= 20) & (freqs <= 20000)
-    centroid = float((freqs[in_range] * psd[in_range]).sum() / psd[in_range].sum()) if total > 0 else 0.0
+    centroid = (
+        float((freqs[in_range] * psd[in_range]).sum() / psd[in_range].sum()) if total > 0 else 0.0
+    )
 
     return {
         "bands": bands,
@@ -65,7 +66,7 @@ def _tilt(freqs: np.ndarray, psd: np.ndarray) -> float:
     edges = edges[edges <= 16000.0]
     xs: list[float] = []
     ys: list[float] = []
-    for lo, hi in zip(edges[:-1], edges[1:], strict=True):
+    for lo, hi in pairwise(edges):
         mask = (freqs >= lo) & (freqs < hi)
         if not mask.any():
             continue

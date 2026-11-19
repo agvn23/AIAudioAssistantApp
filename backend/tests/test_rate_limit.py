@@ -144,7 +144,9 @@ def test_parse_rate(text, expected):
     assert parse_rate(text) == expected
 
 
-@pytest.mark.parametrize("text", ["10", "x/hour", "10/week", "0/hour", "-1/hour", "10/hour/day", ""])
+@pytest.mark.parametrize(
+    "text", ["10", "x/hour", "10/week", "0/hour", "-1/hour", "10/hour/day", ""]
+)
 def test_parse_rate_rejects_nonsense(text):
     with pytest.raises(ValueError):
         parse_rate(text)
